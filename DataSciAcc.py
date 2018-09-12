@@ -26,7 +26,7 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-import base64
+from textwrap import dedent
 
 # Import all libraries required for back end manipulation
 import os
@@ -60,9 +60,17 @@ percentage_df = pd.read_excel(
     'C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\input\Stats\\OfficialSensitive_UKMPA_STATS.xlsx',
     'UK_percentage')
 
+summaryAll_df = pd.read_excel(
+    'C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\input\Stats\\OfficialSensitive_UKMPA_STATS.xlsx',
+    'SummaryAll')
+
 # Import UK MPA Network GeoJson data
 with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\UKMPA_ALL_Simp.geojson') as f:
     mpaJson = json.load(f)
+
+# Import OSPAR Region GeoJson data
+with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\OSPAR_JSON.geojson') as f:
+    osparJson = json.load(f)
 
 
 ########################################################################################################################
@@ -89,8 +97,11 @@ osparRegions = [
 # Setup initial app colours
 
 colors = {
-    'background': '#262626',
-    'text': '#ccccc0',
+    'background1': '#F8F8FF',  # Ghost White
+    'background2': '#FFFFFF',  # White
+    'text': '#262626',  # Very dark grey
+    'textbox': '#FFFFFF',  # White
+
 
     'mpa_count_cols': {
         'Total no. of MPAs': '#E0BBE4',
@@ -105,6 +116,13 @@ colors = {
         'Total Area of SPAs': '#D291BC',
         'Total Area of MCZs': '#FEC8D8',
         'Total Area of NCMPAs': '#FFDFD3'},
+
+    'ospar_cols': {
+        'Region I: Arctic Waters': '#E0BBE4',
+        'Region II: Greater North Sea': '#957DAD',
+        'Region III: Celtic Seas': '#D291BC',
+        'Region V: Wider Atlantic': '#FEC8D8',
+    },
 
     'location_cols': {
             'All UK waters (EEZ+UKCS)': '#E0BBE4',
@@ -140,143 +158,482 @@ mapbox_access_token = 'pk.eyJ1IjoibGlhbW1hdGVhciIsImEiOiJjamxnZTRicHQxMzRnM3BxZ2
 # Setup app layout
 
 app.layout = html.Div(
-    style={'backgroundColor': colors['background']}, children=[
+    style={'backgroundColor': colors['background2']}, children=[
         html.Div(
-                # Set application title, colour and orientation
-                html.H1(
-                    children='UK MPA Network Statistics',
-                    className='eight columns',
-                    style={
-                        'textAlign': 'center',
-                        'color': colors['text'],
-                        'backgroundColor': colors['background'],
-                        'width': '100%',
-                        # 'height': '20',
-                        'display': 'block',
-                        'float': 'center'
-                    }),
+            style={'backgroundColor': colors['background1']}, children=[
+                html.Div(
+                    # Set application title, colour and orientation
+                    html.H1(
+                        children='UK Marine Protected Area (MPA) Network Statistics',
+                        className='twelve columns',
+                        style={
+                            'textAlign': 'center',
+                            'color': colors['text'],
+                            'backgroundColor': colors['background1'],
+                            'width': '100%',
+                            # 'display': 'block',
+                            'margin-top': '80',
+                            'font-size': '58',
+                        },
+                    ),
 
-                # html.Img(
-                #     src="https://s3-us-west-1.amazonaws.com/plotly-tutorials/logo/new-branding/dash-logo-by-plotly-stripe.png",
-                #     className='one columns',
-                #     style={
-                #          'height': '100',
-                #          'width': '225',
-                #          'float': 'right',
-                #          'position': 'relative',
-                #          'backgroundColor': colors['background']
-                #     },
-                # ),
-            ),
-
-        # Set key stats summary text
-
-        html.Div(
-            [
-                html.H5(
-                    '',
-                    id='mpa_number',
-                    className='two columns',
-                    style={'color': colors['text']}
+                    # html.Img(
+                    #     src='https://github.com/liammatear/DataSciAcc/blob/master/JNCCLogo_Grey.png',
+                    #     className='one columns',
+                    #     style={
+                    #          'height': '100',
+                    #          'width': '225',
+                    #          'float': 'right',
+                    #          'position': 'relative',
+                    #          'backgroundColor': colors['background']
+                    #     },
+                    # ),
                 ),
-                html.H5(
-                    '',
-                    id='total_area',
-                    className='eight columns',
-                    style={'text-align': 'center',
-                           'color': colors['text']}
-                ),
-                html.H5(
-                    '',
-                    id='total_percentage',
-                    className='two columns',
-                    style={'text-align': 'right',
-                           'color': colors['text']}
-                ),
-            ],
-            className='row'
-        ),
 
-        # Set control panel - Location drop-down menu
-        html.Div(
-            [
                 html.Div(
                     [
-                        html.P(
-                            'Filter by geospatial location',
-                            style={'color': colors['text']}
-                               ),
-                        dcc.RadioItems(
-                            id='country_selector',
-                            options=[
-                                {'label': 'All ', 'value': 'all'},
-                                {'label': 'England ', 'value': 'eng'},
-                                {'label': 'Scotland ', 'value': 'scot'},
-                                {'label': 'N. Ireland ', 'value': 'nire'},
-                                {'label': 'Wales ', 'value': 'wales'},
-                                {'label': 'OSPAR Regions', 'value': 'ospar'},
+
+                    ],
+                    className='row'
+                ),
+
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.H1(
+                                    ' Marine Protected Areas ',
+                                    style={
+                                        'color': colors['text'],
+                                        'text-align': 'left',
+                                        'margin-top': '100',
+                                        'margin': '20',
+                                    },
+                                ),
+                                dcc.Markdown(
+                                    dedent('''
+                                
+                                Our seas are home to some of the most biologically diverse [habitats](http://jncc.defra.gov.uk/page-1529) and [species](http://jncc.defra.gov.uk/page-1592) in Europe.
+                                Marine Protected Areas (MPAs) are one of the tools that can help us to protect the marine environment, whilst also enabling it's [sustainable use](http://jncc.defra.gov.uk/page-1528), ensuring it remains healthy and contributes to our society for generations to come.
+                                JNCC is responsible for identifying and providing [conservation advice](http://jncc.defra.gov.uk/page-6849) on MPAs in UK offshore waters (beyond 12 nautical miles). More information on our role can be found on the [MPA Overview page](http://jncc.defra.gov.uk/page-6906).
+                                
+                                '''
+                                           ),
+                                    containerProps={
+                                        'style': {
+                                            'textAlign': 'justify',
+                                            'color': colors['text'],
+                                            'backgroundColor': colors['textbox'],
+                                            'margin': '20',
+                                            'font-size': '20'
+                                            # 'margin-top': '45'
+                                        },
+                                    }
+                                ),
                             ],
-                            value='all',
-                            labelStyle={'display': 'inline-block',
-                                        'color': colors['text']}
-                        ),
-                        dcc.Dropdown(
-                            id='Location',
-                            options=[{'label': i, 'value': i} for i in availableLocations],
-                            # Allows for all or singular filtering
-                            multi=False,
-                            # value=list(availableLocations) - if multi
-                            value='All UK waters (EEZ+UKCS)'
+                            className='twelve columns'
                         ),
                     ],
-                    className='twelve columns'
+                    className='row'
                 ),
-            ],
-            className='row'
-        ),
 
-        # Create graph areas - main map
-        html.Div(
-            [
                 html.Div(
                     [
-                        dcc.Graph(id='main_graph')
+                        html.Div(
+                            [
+                                dcc.Markdown(
+                                    dedent('''
+                                    # Explore Our Protected Area Network:
+                                    
+                                    ##### Select a location from the drop-down menu below to filter the map and find out key statistics from our [Marine Protected Network](http://jncc.defra.gov.uk/page-4524)
+                                                                        '''),
+                                    containerProps={
+                                        'style': {
+                                            'textAlign': 'left',
+                                            'color': colors['text'],
+                                            'margin': '20',
+                                            'margin-top': '45'
+                                        },
+                                    }
+                                ),
+                            ],
+
+                        ),
                     ],
-                    className='six columns',
-                    style={'margin-top': '20'}
+                    className='row'
                 ),
-                # Create graph areas - mpa count
+
+                # Set control panel - Location drop-down menu
                 html.Div(
                     [
-                        dcc.Graph(id='mpa_count')
+                        html.Div(
+                            [
+                                html.Div(
+                                    [
+                                        dcc.Dropdown(
+                                            id='Location',
+                                            options=[{'label': i, 'value': i} for i in availableLocations],
+                                            # Allows for all or singular filtering
+                                            multi=False,
+                                            # value=list(availableLocations)
+                                            # Old singular dropdown
+                                            value='All UK waters (EEZ+UKCS)',
+                                        ),
+                                    ],
+                                ),
+                            ],
+                            className='twelve columns'
+                        ),
                     ],
-                    className='six columns',
-                    style={'margin-top': '20'}
+                    className='row'
+                ),
+
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                dcc.Graph(id='main_graph')
+                            ],
+                            className='twelve columns',
+                            style={'margin-top': '20',
+                                   'float': 'center'},
+                        ),
+                    ],
+                    className='row'
+                ),
+
+                # Set key stats summary text
+                html.Div(
+                    [
+                        html.H4(
+                            '',
+                            id='mpa_number',
+                            className='two columns',
+                            style={
+                                'color': colors['text'],
+                                'margin': '20',
+                            }
+                        ),
+                        html.H4(
+                            '',
+                            id='total_area',
+                            className='eight columns',
+                            style={
+                                'text-align': 'center',
+                                'color': colors['text'],
+                                'margin': '20'
+                            }
+                        ),
+                        html.H4(
+                            '',
+                            id='total_percentage',
+                            className='two columns',
+                            style={
+                                'text-align': 'right',
+                                'color': colors['text'],
+                                'margin': '20'
+                            },
+                        ),
+                    ],
+                    className='row'
+                ),
+
+                html.Div(
+                    [
+                            html.Div(
+                                [
+                                    html.H2(
+                                        ' Marine Protected Area Network Statistics ',
+                                        style={
+                                            'color': colors['text'],
+                                            'text-align': 'left',
+                                            'margin-top': '60',
+                                            'margin': '20',
+                                        },
+                                    ),
+                                    dcc.Markdown(
+                                        dedent('''
+
+                                        JNCC calculates statistics for the whole of the UK MPA network to assess progress in MPA designation. 
+                                        
+                                        The statistical data represented within this dashboard comprises data from:
+                                             
+                                        * The [UK Exclusive Economic Zone (EEZ)](http://www.legislation.gov.uk/uksi/2013/3161/contents/made) and the [UK continental shelf](https://www.legislation.gov.uk/uksi/2013/3162/made).
+                                        * All UK Inshore waters between the coast (here defined by mean high water (springs) and the [UK Territorial Sea](https://www.legislation.gov.uk/ukpga/1987/49) limit (up to 12 nautical miles out).
+                                        * All UK Offshore waters between the UK Territorial Sea limit and the UK Exclusive Economic Zone or UK continental shelf.
+                                        
+                                        
+                                        '''
+                                               ),
+                                        containerProps={
+                                            'style': {
+                                                'textAlign': 'justify',
+                                                'color': colors['text'],
+                                                'backgroundColor': colors['textbox'],
+                                                'margin': '20',
+                                                'font-size': '20',
+                                            },
+                                        },
+                                    ),
+                                ],
+                                className='twelve columns',
+                            ),
+                    ],
+                    className='row'
+                ),
+
+                # Statistics by designation introduction, controls and graphs
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.H2(
+                                    ' Types of Marine Protected Area ',
+                                    style={
+                                        'color': colors['text'],
+                                        'text-align': 'left',
+                                        'margin-top': '60',
+                                        'margin': '20',
+                                    },
+                                ),
+
+                                dcc.Markdown(
+                                    dedent('''
+
+                                In the UK, as of March 2018 approximately 24% of our waters are currently within MPAs.
+                                There are 105 [Special Areas of Conservation (SACs)](http://jncc.defra.gov.uk/page-1445)
+                                with marine components, 107 [Special Protection Areas (SPAs)](http://jncc.defra.gov.uk/page-1414)
+                                with marine components, 56 [Marine Conservation Zones](http://jncc.defra.gov.uk/page-4525)
+                                and 30 [Nature Conservation Marine Protected Areas](http://jncc.defra.gov.uk/page-5269).
+                                [Sites of Special Scientific Interest (SSSIs)](http://jncc.defra.gov.uk/page-2303)
+                                with marine components and [Ramsar sites](http://jncc.defra.gov.uk/page-161) will also form
+                                part of the UK’s contribution to an MPA network. Currently, the Statutory Nature
+                                Conservation Agencies are confirming those SSSIs and Ramsar sites that will contribute to
+                                the MPA network through their protection of marine features.
+                                
+                                The MPA designation types included within this dashboard comprise Marine Conservation Zones
+                                (MCZs), Special Areas of Conservation (SACs) with marine components, Special Protection
+                                Areas (SPAs) with marine components, and Nature Conservation MPAs (NCMPAs).
+                                
+                                '''
+                                           ),
+                                    containerProps={
+                                        'style': {
+                                            'textAlign': 'justify',
+                                            'color': colors['text'],
+                                            'backgroundColor': colors['textbox'],
+                                            'margin': '20',
+                                            'font-size': '20',
+                                        },
+                                    },
+                                ),
+                            ],
+                            className='twelve columns',
+                        ),
+                    ],
+                    className='row'
+                ),
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                dcc.Markdown(
+                                    dedent('''
+                                    ## Key Facts by MPA Designation:
+
+                                    ##### Change location using the filter below to toggle the types of MPA displayed in the graphs 
+                                                                        '''),
+                                    containerProps={
+                                        'style': {
+                                            'textAlign': 'left',
+                                            'color': colors['text'],
+                                            'margin': '20',
+                                            'margin-top': '45'
+                                        },
+                                    }
+                                ),
+                            ],
+
+                        ),
+                    ],
+                    className='row'
+                ),
+
+                # Control panel for designation statistics graphs
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.Div(
+                                    [
+                                        dcc.RadioItems(
+                                            id='country_selector',
+                                            options=[
+                                                {'label': 'All ', 'value': 'all'},
+                                                {'label': 'England ', 'value': 'eng'},
+                                                {'label': 'Scotland ', 'value': 'scot'},
+                                                {'label': 'N. Ireland ', 'value': 'nire'},
+                                                {'label': 'Wales ', 'value': 'wales'},
+                                            ],
+                                            value='all',
+                                            labelStyle={'display': 'inline-block',
+                                                        'color': colors['text']}
+                                        ),
+
+                                        dcc.Dropdown(
+                                            id='Location2',
+                                            options=[{'label': i, 'value': i} for i in availableLocations],
+                                            # Allows for all or singular filtering
+                                            multi=False,
+                                            # value=list(availableLocations),
+                                            # Old singular dropdown
+                                            value='All UK waters (EEZ+UKCS)',
+                                        ),
+                                    ],
+                                ),
+                            ],
+                            className='twelve columns'
+                        ),
+                    ],
+                    className='row'
+                ),
+
+                # Statistics by designation graphs
+                html.Div(
+                    [
+                        # html.Div(
+                        #     [
+                        #         dcc.Graph(id='area_pie')
+                        #     ],
+                        #     className='five columns',
+                        #     style={'margin-top': '10'}
+                        # ),
+                        # Create graph areas - mpa count
+                        html.Div(
+                            [
+                                dcc.Graph(id='percentage_pie')
+                            ],
+                            className='six columns',
+                            style={'margin-top': '10'}
+                        ),
+                        html.Div(
+                            [
+                                dcc.Graph(id='mpa_count')
+                            ],
+                            className='six columns',
+                            style={'margin-top': '10'}
+                        ),
+                    ],
+                    className='row',
+                ),
+
+                # OSPAR Introduction and controls
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.H2(
+                                    ' Our Work Internationally ',
+                                    style={
+                                        'color': colors['text'],
+                                        'text-align': 'left',
+                                        'margin-top': '60',
+                                        'margin': '20',
+                                    },
+                                ),
+                                html.H4(
+                                    'OSPAR Regions',
+                                    style={
+                                        'color': colors['text'],
+                                        'text-align': 'left',
+                                        'margin-top': '60',
+                                        'margin': '20',
+                                    },
+                                ),
+                                dcc.Markdown(
+                                    dedent("""
+                                    
+                                    The UK is a signatory to the [Oslo and Paris Convention (OSPAR)](http://www.ospar.org/), 
+                                    which requires contracting parties to establish an ecologically coherent and 
+                                    well-managed network of MPAs across the North-east Atlantic as per the [North-east 
+                                    Atlantic biodiversity strategy](http://www.ospar.org/site/assets/files/1466/biodiversity_strategy.pdf).
+                                    In 2012, Defra and the Devolved Administrations published a [statement](http://www.scotland.gov.uk/Resource/0041/00411304.pdf) 
+                                    setting out how the UK will contribute to this target. The UK MPA network is 
+                                    intended to contribute toward the protection of [OSPAR threatened and/or declining 
+                                    habitats and species](http://www.ospar.org/work-areas/bdc/species-habitats/list-of-threatened-declining-species-habitats),
+                                    and the conservation of areas which best represent the range of species, habitats 
+                                    and ecological processes in the OSPAR Maritime Area.
+                                    
+                                    
+                                    JNCC leads on the provision of scientific advice to the UK delegation at OSPAR MPA 
+                                    working group meetings, including methods of assessment for ecological coherence and
+                                    management effectiveness. Our work has included taking a leading role as part of an
+                                    ecological coherence steering group in the OSPAR Commission’s contract to 
+                                    [assess the ecological coherence of the MPA network across the North-East Atlantic](http://www.ospar.org/documents?d=7346). 
+                                    JNCC staff lead work within OSPAR on assessing ecological coherence through the 
+                                    OSPAR ecological coherence task group. The UK has identified a total of 283 OSPAR 
+                                    MPAs to date, consisting of existing MPAs already established in UK waters 
+                                    (such as Special Areas of Conservation, Special Protection Areas, Nature 
+                                    Conservation MPAs and Marine Conservation Zones). Information on OSPAR MPAs 
+                                    that have been submitted by Contracting Parties is available from the 
+                                    [OSPAR Commission](http://www.ospar.org/data).
+                                """),
+                                    containerProps={
+                                        'style': {
+                                            'textAlign': 'justify',
+                                            'color': colors['text'],
+                                            'backgroundColor': colors['textbox'],
+                                            'margin': '20',
+                                            'font-size': '20',
+                                        },
+                                    },
+                                ),
+                                dcc.Markdown(
+                                    dedent('''
+                                        ## Explore the OSPAR Regions 
+                                        
+                                        ##### Use the checkboxes below to select an OSPAR Region, control the OSPAR map and display key statistics from the OSPAR Regions
+                                        '''),
+                                    containerProps={
+                                        'style': {
+                                            'textAlign': 'left',
+                                            'color': colors['text'],
+                                            'margin': '20',
+                                            'margin-top': '45'
+                                        },
+                                    }
+                                ),
+                                dcc.RadioItems(
+                                            id='ospar_selector',
+                                            options=[{'label': i, 'value': i} for i in osparRegions],
+                                            value='all',
+                                            labelStyle={'display': 'inline-block',
+                                                        'color': colors['text']}
+                                        ),
+                            ],
+                            className='twelve columns',
+                        ),
+                    ],
+                    className='row',
+                ),
+
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                dcc.Graph(id='ospar_graph')
+                            ],
+                            className='twelve columns',
+                            style={'margin-top': '20',
+                                   'float': 'center'},
+                        ),
+                    ],
+                    className='row'
                 ),
             ],
-            className='row'
-        ),
-        html.Div(
-            [
-                html.Div(
-                    [
-                        dcc.Graph(id='area_pie')
-                    ],
-                    className='five columns',
-                    style={'margin-top': '10'}
-                ),
-                html.Div(
-                    [
-                        dcc.Graph(id='percentage_pie')
-                    ],
-                    className='seven columns',
-                    style={'margin-top': '10'}
-                ),
-            ],
-            className='row'
+            className='ten columns offset-by-one'
         ),
     ],
-    # className='ten columns offset-by-one'
 )
 
 
@@ -293,7 +650,7 @@ app.layout = html.Div(
     [dash.dependencies.Input('Location', 'value')]
 )
 def summary_mpa_count(selected_location):
-    filtered_df = count_df[count_df.Location == selected_location]
+    filtered_df = summaryAll_df[summaryAll_df.Location == selected_location]
     result = filtered_df['Total no. of MPAs']
     for each in result:
         return 'Total no. of MPAs: ' + str(each)
@@ -305,7 +662,7 @@ def summary_mpa_count(selected_location):
     [dash.dependencies.Input('Location', 'value')]
 )
 def summary_mpa_area(selected_location):
-    filtered_df = area_df[area_df.Location == selected_location]
+    filtered_df = summaryAll_df[summaryAll_df.Location == selected_location]
     result = filtered_df['Total Area of MPAs']
     for each in result:
         return 'Total Area of MPAs (km2):  ' + str(each)
@@ -317,7 +674,7 @@ def summary_mpa_area(selected_location):
     [dash.dependencies.Input('Location', 'value')]
 )
 def summary_mpa_area(selected_location):
-    filtered_df = percentage_df[percentage_df.Location == selected_location]
+    filtered_df = summaryAll_df[summaryAll_df.Location == selected_location]
     result = filtered_df['Total % of location covered by MPAs']
     for each in result:
         return 'Total % covered by MPAs:  ' + str(each) + '%'
@@ -329,30 +686,86 @@ def summary_mpa_area(selected_location):
 
 ########################################################################################################################
 
+
 # Create function to filter data by selected_location
+def filtered_location(selected_location):
+
+    """
+    Create bespoke returns dependent on the input selection. If these are multiple inputs,
+    then provide a return which is a combination of multiple singular returns. Otherwise,
+    if the input location is a singular value, then return the singular output.
+    """
+    filteredjson = {k: v for k, v in mpaJson.items() if k != "features"}
+
+    # Returns for all UK data
+    if selected_location == 'All UK waters (EEZ+UKCS)':
+        return [x for x in mpaJson["features"]]
+    if selected_location == 'UK EEZ':
+        return [x for x in mpaJson["features"]]
+
+    if selected_location == 'UK inshore (territorial seas)':
+        engin = filteredjson
+        walin = filteredjson
+        scotin = filteredjson
+        nirein = filteredjson
+
+        engin['features'] = [x for x in mpaJson["features"] if x["properties"]["Country"] == 'England inshore']
+        walin['features'] = [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Wales inshore']
+        scotin['features'] = [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Scotland inshore']
+        nirein['features'] = [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Northern Ireland inshore']
+
+        result = dict(list(engin.items()) + list(walin.items()) + list(scotin.items()) + list(nirein.items()))
+        return result
+
+    elif selected_location == 'UK offshore':
+        return [x for x in mpaJson["features"] if x["properties"]["Country"] == 'England offshore'], \
+               [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Wales offshore'], \
+               [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Scotland offshore'], \
+               [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Northern Ireland offshore']
+
+    # Returns for Inshore and Offshore data
+    elif selected_location == 'England inshore+offshore':
+        return [x for x in mpaJson["features"] if x["properties"]["Country"] == 'England inshore'], \
+               [x for x in mpaJson["features"] if x["properties"]["Country"] == 'England offshore']
+    elif selected_location == 'Wales inshore+offshore':
+        return [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Wales inshore'], \
+               [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Wales offshore']
+    elif selected_location == 'Scotland inshore+offshore':
+        return [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Scotland inshore'], \
+               [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Scotland offshore']
+    elif selected_location == 'Northern Ireland inshore+offshore':
+        return [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Northern Ireland inshore'], \
+               [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Northern Ireland offshore']
+
+    # Singular returns for singular selected locations
+    else:
+        return [x for x in mpaJson["features"] if x["properties"]["Country"] == selected_location]
 
 
 # Create application callback decorator for main graph
 @app.callback(
     dash.dependencies.Output('main_graph', 'figure'),
+    # Functioning radioItems code
     [dash.dependencies.Input('Location', 'value')]
 )
 def make_main_graph(selected_location):
     # Identify locations of all entries within json file
     print(selected_location)
     # Create filtered json data from mpaJson and add features to newly created object
+    # moved into function above
     filteredjson = {k: v for k, v in mpaJson.items() if k != "features"}
-    filteredjson["features"] = [x for x in mpaJson["features"] if x["properties"]["Country"] == selected_location]
+    filteredjson['features'] = filtered_location(selected_location)
+
     traces = []
 
     traces.append(
         go.Scattermapbox(
-            lon=[filteredjson['features'][k]['properties']['LONG_dd'] for k in range(len(filteredjson['features']))],
             lat=[filteredjson['features'][k]['properties']['LAT_dd'] for k in range(len(filteredjson['features']))],
+            lon=[filteredjson['features'][k]['properties']['LONG_dd'] for k in range(len(filteredjson['features']))],
             text=[filteredjson['features'][k]['properties']['SITE_NAME'] for k in range(len(filteredjson['features']))],
             marker=dict(
                 opacity=0.6,
-                color=colors['location_cols'][selected_location]
+                color='#FEC8D8'
             ),
         )
     )
@@ -360,7 +773,7 @@ def make_main_graph(selected_location):
         'data': traces,
         'layout': go.Layout(
             autosize=True,
-            height=500,
+            height=700,
             font=dict(
                 color=colors['text']
             ),
@@ -369,29 +782,29 @@ def make_main_graph(selected_location):
                 size=14
             ),
             margin=dict(
-                l=35,
-                r=35,
-                b=35,
-                t=45
+                l=20,
+                r=20,
+                b=0,
+                t=0
             ),
             hovermode='closest',
-            plot_bgcolor=colors['background'],
-            paper_bgcolor=colors['background'],
+            plot_bgcolor=colors['background1'],
+            paper_bgcolor=colors['background1'],
             legend=dict(
                 font=dict(
                     size=10
                 ),
                 orientation='h'
             ),
-            title='UK MPA Network',
+            # title='UK MPA Network',
             mapbox=dict(
                 accesstoken=mapbox_access_token,
                 style='dark',
                 center=dict(
                     lon=-3.6,
-                    lat=55
+                    lat=56.2
                 ),
-                zoom=4.1
+                zoom=4.2
             ),
         )
     }
@@ -400,7 +813,7 @@ def make_main_graph(selected_location):
 # Create application callback decorator to update bar chart with location selection
 @app.callback(
     dash.dependencies.Output('mpa_count', 'figure'),
-    [dash.dependencies.Input('Location', 'value')]
+    [dash.dependencies.Input('Location2', 'value')]
 )
 def update_count(selected_location):
     filtered_df = count_df[count_df.Location == selected_location]
@@ -431,42 +844,9 @@ def update_count(selected_location):
             margin={'l': 50, 'b': 40, 't': 50, 'r': 10},
             showlegend=True,
             hovermode='closest',
-            paper_bgcolor=colors['background'],
-            plot_bgcolor=colors['background'],
+            paper_bgcolor=colors['background1'],
+            plot_bgcolor=colors['background1'],
 
-        )
-    }
-
-
-# Create application callback decorator to update area pie chart with location selection
-@app.callback(
-    dash.dependencies.Output('area_pie', 'figure'),
-    [dash.dependencies.Input('Location', 'value')]
-)
-def update_pie(selected_location):
-    traces = []
-    filtered_df = area_df[area_df.Location == selected_location]
-    filtered_df2 = filtered_df.drop(['Location'], axis=1, inplace=False)
-    # NEED TO REMOVE PERCENTAGE VALUES
-    traces.append(go.Pie(
-        labels=list(filtered_df2),
-        values=pd.Series(filtered_df2.iloc[0]),
-        textposition='outside',
-        textinfo='value',
-        marker=dict(
-            colors=pd.Series(colors['mpa_area_cols']),
-            line=dict(color='#ccccc0', width=2)),
-        pull=0.2,
-        hole=0.1
-    ))
-    return {
-        'data': traces,
-        'layout': go.Layout(
-            title='Total MPA Area by Location (km2)',
-            font=dict(color=colors['text']),
-            hovermode='closest',
-            paper_bgcolor=colors['background'],
-            plot_bgcolor=colors['background']
         )
     }
 
@@ -474,7 +854,7 @@ def update_pie(selected_location):
 # Create application callback decorator to percentage area pie chart with location selection
 @app.callback(
     dash.dependencies.Output('percentage_pie', 'figure'),
-    [dash.dependencies.Input('Location', 'value')]
+    [dash.dependencies.Input('Location2', 'value')]
 )
 def update_per_pie(selected_location):
     traces = []
@@ -494,14 +874,80 @@ def update_per_pie(selected_location):
     return {
         'data': traces,
         'layout': go.Layout(
-            title='Percent of Location Covered by MPA (%)',
+            title='Percentage area of MPAs within administrative area (%)',
             font=dict(color=colors['text']),
             hovermode='closest',
-            paper_bgcolor=colors['background'],
-            plot_bgcolor=colors['background']
+            paper_bgcolor=colors['background1'],
+            plot_bgcolor=colors['background1']
         )
     }
 
+
+# @app.callback(
+#     dash.dependencies.Output('ospar_graph', 'figure'),
+#     # Functioning radioItems code
+#     [dash.dependencies.Input('ospar_selector', 'value')]
+# )
+# def make_ospar_graph(selected_location):
+#     # Identify locations of all entries within json file
+#     print(selected_location)
+#     # Create filtered json data from mpaJson and add features to newly created object
+#     # moved into function above
+#     filteredjson = {k: v for k, v in osparJson.items() if k != "features"}
+#     filteredjson['features'] = [x for x in osparJson["features"] if x["properties"]["Name"] == selected_location]
+#
+#     traces = []
+#
+#     traces.append(
+#         go.Scattermapbox(
+#             lat=[filteredjson['features'][k]['geometry']['coordinates'] for k in range(len(filteredjson['features']))],
+#             lon=[filteredjson['features'][k]['geometry']['coordinates'] for k in range(len(filteredjson['features']))],
+#             text=[filteredjson['features'][k]['properties']['Name'] for k in range(len(filteredjson['features']))],
+#             marker=dict(
+#                 opacity=0.6,
+#                 color=colors['ospar_cols'][selected_location]
+#             ),
+#         )
+#     )
+#     return {
+#         'data': traces,
+#         'layout': go.Layout(
+#             autosize=True,
+#             height=700,
+#             font=dict(
+#                 color=colors['text']
+#             ),
+#             titlefont=dict(
+#                 color=colors['text'],
+#                 size=14
+#             ),
+#             margin=dict(
+#                 l=20,
+#                 r=20,
+#                 b=0,
+#                 t=0
+#             ),
+#             hovermode='closest',
+#             plot_bgcolor=colors['background1'],
+#             paper_bgcolor=colors['background1'],
+#             legend=dict(
+#                 font=dict(
+#                     size=10
+#                 ),
+#                 orientation='h'
+#             ),
+#             # title='UK MPA Network',
+#             mapbox=dict(
+#                 accesstoken=mapbox_access_token,
+#                 style='dark',
+#                 center=dict(
+#                     lon=-3.6,
+#                     lat=56.2
+#                 ),
+#                 zoom=4.2
+#             ),
+#         )
+#     }
 
 app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'})
 
