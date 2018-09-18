@@ -790,25 +790,68 @@ def make_main_graph(selected_location):
                     lat=56.2
                 ),
                 zoom=4.2,
+                # Add OSPAR Regional Data Layers - Outlines to map
                 layers=[
-                    {
-                        'below': 'water',
-                        'color': '#FFDFD3',
-                        'opacity': 0.8,
-                        'source': {
-                            'type': 'FeatureCollection',
-                            'features': [
-                                {
-                                    'geometry': {
-                                        'type': 'Polygon',
-                                        # 'id': 'Region1',
-                                        'coordinates': [osparJson['features'][k]['geometry']['coordinates'] for k in range(len(osparJson['features'])) if osparJson['features'][k]['properties']['Region_Nam'] == 'Region I'],
-                                    },
-                                },
-                            ],
-                        },
-                    },
+                    dict(
+                        sourcetype='geojson',
+                        source=[osparJson['features'][k]['geometry']['coordinates']
+                                for k in range(len(osparJson['features']))
+                                if osparJson['features'][k]['properties']['Region_Nam'] == 'Region I'],
+                        type='fill',
+                        color='#FFDFD3'
+                        ),
+                    dict(
+                        sourcetype='geojson',
+                        source=[osparJson['features'][k]['geometry']['coordinates']
+                                for k in range(len(osparJson['features']))
+                                if osparJson['features'][k]['properties']['Region_Nam'] == 'Region II'],
+                        type='fill',
+                        color='#FFDFD3'
+                    ),
+                    dict(
+                        sourcetype='geojson',
+                        source=[osparJson['features'][k]['geometry']['coordinates']
+                                for k in range(len(osparJson['features']))
+                                if osparJson['features'][k]['properties']['Region_Nam'] == 'Region III'],
+                        type='fill',
+                        color='#FFDFD3'
+                    ),
+                    dict(
+                        sourcetype='geojson',
+                        source=[osparJson['features'][k]['geometry']['coordinates']
+                                for k in range(len(osparJson['features']))
+                                if osparJson['features'][k]['properties']['Region_Nam'] == 'Region IV'],
+                        type='fill',
+                        color='#FFDFD3'
+                    ),
+                    dict(
+                        sourcetype='geojson',
+                        source=[osparJson['features'][k]['geometry']['coordinates']
+                                for k in range(len(osparJson['features']))
+                                if osparJson['features'][k]['properties']['Region_Nam'] == 'Region V'],
+                        type='fill',
+                        color='#FFDFD3'
+                    ),
                 ],
+                # layers=[
+                #     {
+                #         'below': 'water',
+                #         'color': '#FFDFD3',
+                #         'opacity': 0.8,
+                #         'source': {
+                #             'type': 'FeatureCollection',
+                #             'features': [
+                #                 {
+                #                     'geometry': {
+                #                         'type': 'Polygon',
+                #                         # 'id': 'Region1',
+                #                         'coordinates': [osparJson['features'][k]['geometry']['coordinates'] for k in range(len(osparJson['features'])) if osparJson['features'][k]['properties']['Region_Nam'] == 'Region I'],
+                #                     },
+                #                 },
+                #             ],
+                #         },
+                #     },
+                # ],
             ),
         ),
     }
