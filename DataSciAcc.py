@@ -65,7 +65,7 @@ summaryAll_df = pd.read_excel(
     'SummaryAll')
 
 # Import UK MPA Network GeoJson data
-with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\UKMPA_ALL_Simp.geojson') as f:
+with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\UKMPA_SitInfo_00005_Simp.geojson') as f:
     mpaJson = json.load(f)
 
 # Import OSPAR Region GeoJson data
@@ -78,16 +78,20 @@ with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\OSPAR
 
 # Set unique location headings to build filtering controls for all statistical data
 
-# availableLocations = count_df['Location'].unique()
+inshoreOffshore = ['All UK waters (EEZ+UKCS)', 'UK inshore (territorial seas)', 'UK offshore']
 
 availableLocations = [
+    'England', 'Wales',
+    'Scotland', 'Northern Ireland'
+    ]
+
+availableLocationsGraphs = [
+    'England', 'Wales',
+    'Scotland', 'Northern Ireland',
     'All UK waters (EEZ+UKCS)', 'UK EEZ',
-    'UK inshore (territorial seas)', 'UK offshore',
-    'England inshore+offshore', 'Wales inshore+offshore',
-    'Scotland inshore+offshore', 'Northern Ireland inshore+offshore',
-    'England inshore', 'Wales inshore', 'Scotland inshore',
-    'Northern Ireland inshore', 'England offshore', 'Wales offshore',
-    'Scotland offshore', 'Northern Ireland offshore']
+    'UK inshore (territorial seas)',
+    'UK offshore'
+    ]
 
 osparRegions = [
     'Region I: Arctic Waters', 'Region II: Greater North Sea',
@@ -192,13 +196,6 @@ app.layout = html.Div(
 
                 html.Div(
                     [
-
-                    ],
-                    className='row'
-                ),
-
-                html.Div(
-                    [
                         html.Div(
                             [
                                 html.H1(
@@ -246,7 +243,8 @@ app.layout = html.Div(
                                     # Explore Our Protected Area Network:
                                     
                                     ##### Select a location from the drop-down menu below to filter the map and find out key statistics from our [Marine Protected Network](http://jncc.defra.gov.uk/page-4524)
-                                                                        '''),
+                                    Use the checkbox to filter your options at a UK level, individual countries and OSPAR regions
+                                                                       '''),
                                     containerProps={
                                         'style': {
                                             'textAlign': 'left',
@@ -254,7 +252,7 @@ app.layout = html.Div(
                                             'margin': '20',
                                             'margin-top': '45'
                                         },
-                                    }
+                                    },
                                 ),
                             ],
 
@@ -270,9 +268,21 @@ app.layout = html.Div(
                             [
                                 html.Div(
                                     [
+                                        dcc.RadioItems(
+                                            id='mainSelector',
+                                            options=[
+                                                {'label': 'UK', 'value': 'UK'},
+                                                {'label': 'Country', 'value': 'Country'},
+                                                {'label': 'OSPAR Region', 'value': 'OSPAR'},
+                                            ],
+                                            value='UK',
+                                            labelStyle={'display': 'inline-block',
+                                                        'color': colors['text']}
+                                        ),
                                         dcc.Dropdown(
                                             id='Location',
-                                            options=[{'label': i, 'value': i} for i in availableLocations],
+                                            # options=[{'label': i, 'value': i} for i in availableLocations],
+                                            options=[],
                                             # Allows for all or singular filtering
                                             multi=False,
                                             # value=list(availableLocations)
@@ -466,23 +476,9 @@ app.layout = html.Div(
                             [
                                 html.Div(
                                     [
-                                        dcc.RadioItems(
-                                            id='country_selector',
-                                            options=[
-                                                {'label': 'All ', 'value': 'all'},
-                                                {'label': 'England ', 'value': 'eng'},
-                                                {'label': 'Scotland ', 'value': 'scot'},
-                                                {'label': 'N. Ireland ', 'value': 'nire'},
-                                                {'label': 'Wales ', 'value': 'wales'},
-                                            ],
-                                            value='all',
-                                            labelStyle={'display': 'inline-block',
-                                                        'color': colors['text']}
-                                        ),
-
                                         dcc.Dropdown(
-                                            id='Location2',
-                                            options=[{'label': i, 'value': i} for i in availableLocations],
+                                            id='LocationGraphs',
+                                            options=[{'label': i, 'value': i} for i in availableLocationsGraphs],
                                             # Allows for all or singular filtering
                                             multi=False,
                                             # value=list(availableLocations),
@@ -577,6 +573,7 @@ app.layout = html.Div(
                                     Conservation MPAs and Marine Conservation Zones). Information on OSPAR MPAs 
                                     that have been submitted by Contracting Parties is available from the 
                                     [OSPAR Commission](http://www.ospar.org/data).
+                                    
                                 """),
                                     containerProps={
                                         'style': {
@@ -603,13 +600,6 @@ app.layout = html.Div(
                                         },
                                     }
                                 ),
-                                dcc.RadioItems(
-                                            id='ospar_selector',
-                                            options=[{'label': i, 'value': i} for i in osparRegions],
-                                            value='all',
-                                            labelStyle={'display': 'inline-block',
-                                                        'color': colors['text']}
-                                        ),
                             ],
                             className='twelve columns',
                         ),
@@ -642,6 +632,22 @@ app.layout = html.Div(
 #                                          Key Summary Header Text Callbacks
 
 ########################################################################################################################
+
+# Create main control panel controls - combination of radio items which update drop-down menu
+
+@app.callback(
+    dash.dependencies.Output('Location', 'options'),
+    [dash.dependencies.Input('mainSelector', 'value')]
+)
+def main_control(main_filter):
+    options = []
+    if main_filter == 'UK':
+        options = [{'label': i, 'value': i} for i in inshoreOffshore]
+    elif main_filter == 'Country':
+        options = [{'label': i, 'value': i} for i in availableLocations]
+    elif main_filter == 'OSPAR':
+        options = [{'label': i, 'value': i} for i in osparRegions]
+    return options
 
 
 # Create application callback decorator to update the Total MPA Number text box in key summary header
@@ -695,47 +701,25 @@ def filtered_location(selected_location):
     then provide a return which is a combination of multiple singular returns. Otherwise,
     if the input location is a singular value, then return the singular output.
     """
-    filteredjson = {k: v for k, v in mpaJson.items() if k != "features"}
+    # filteredjson = {k: v for k, v in mpaJson.items() if k != "features"}
 
     # Returns for all UK data
     if selected_location == 'All UK waters (EEZ+UKCS)':
         return [x for x in mpaJson["features"]]
-    if selected_location == 'UK EEZ':
-        return [x for x in mpaJson["features"]]
-
-    if selected_location == 'UK inshore (territorial seas)':
-        engin = filteredjson
-        walin = filteredjson
-        scotin = filteredjson
-        nirein = filteredjson
-
-        engin['features'] = [x for x in mpaJson["features"] if x["properties"]["Country"] == 'England inshore']
-        walin['features'] = [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Wales inshore']
-        scotin['features'] = [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Scotland inshore']
-        nirein['features'] = [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Northern Ireland inshore']
-
-        result = dict(list(engin.items()) + list(walin.items()) + list(scotin.items()) + list(nirein.items()))
-        return result
-
+    elif selected_location == 'UK inshore (territorial seas)':
+        return [x for x in mpaJson["features"] if 'inshore' in x["properties"]["Country"]]
     elif selected_location == 'UK offshore':
-        return [x for x in mpaJson["features"] if x["properties"]["Country"] == 'England offshore'], \
-               [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Wales offshore'], \
-               [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Scotland offshore'], \
-               [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Northern Ireland offshore']
+        return [x for x in mpaJson["features"] if 'offshore' in x["properties"]["Country"]]
 
-    # Returns for Inshore and Offshore data
-    elif selected_location == 'England inshore+offshore':
-        return [x for x in mpaJson["features"] if x["properties"]["Country"] == 'England inshore'], \
-               [x for x in mpaJson["features"] if x["properties"]["Country"] == 'England offshore']
-    elif selected_location == 'Wales inshore+offshore':
-        return [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Wales inshore'], \
-               [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Wales offshore']
-    elif selected_location == 'Scotland inshore+offshore':
-        return [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Scotland inshore'], \
-               [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Scotland offshore']
-    elif selected_location == 'Northern Ireland inshore+offshore':
-        return [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Northern Ireland inshore'], \
-               [x for x in mpaJson["features"] if x["properties"]["Country"] == 'Northern Ireland offshore']
+    # Returns for Inshore and Offshore by country data
+    elif selected_location == 'England':
+        return [x for x in mpaJson["features"] if 'England' in x["properties"]["Country"]]
+    elif selected_location == 'Wales':
+        return [x for x in mpaJson["features"] if 'Wales' in x["properties"]["Country"]]
+    elif selected_location == 'Scotland':
+        return [x for x in mpaJson["features"] if 'Scotland' in x["properties"]["Country"]]
+    elif selected_location == 'Northern Ireland':
+        return [x for x in mpaJson["features"] if 'Northern Ireland' in x["properties"]["Country"]]
 
     # Singular returns for singular selected locations
     else:
@@ -796,24 +780,44 @@ def make_main_graph(selected_location):
                 ),
                 orientation='h'
             ),
-            # title='UK MPA Network',
+            title='UK MPA Network',
             mapbox=dict(
                 accesstoken=mapbox_access_token,
                 style='dark',
+                # center='auto',
                 center=dict(
                     lon=-3.6,
                     lat=56.2
                 ),
-                zoom=4.2
+                zoom=4.2,
+                layers=[
+                    {
+                        'below': 'water',
+                        'color': '#FFDFD3',
+                        'opacity': 0.8,
+                        'source': {
+                            'type': 'FeatureCollection',
+                            'features': [
+                                {
+                                    'geometry': {
+                                        'type': 'Polygon',
+                                        # 'id': 'Region1',
+                                        'coordinates': [osparJson['features'][k]['geometry']['coordinates'] for k in range(len(osparJson['features'])) if osparJson['features'][k]['properties']['Region_Nam'] == 'Region I'],
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                ],
             ),
-        )
+        ),
     }
 
 
 # Create application callback decorator to update bar chart with location selection
 @app.callback(
     dash.dependencies.Output('mpa_count', 'figure'),
-    [dash.dependencies.Input('Location2', 'value')]
+    [dash.dependencies.Input('LocationGraphs', 'value')]
 )
 def update_count(selected_location):
     filtered_df = count_df[count_df.Location == selected_location]
@@ -854,7 +858,7 @@ def update_count(selected_location):
 # Create application callback decorator to percentage area pie chart with location selection
 @app.callback(
     dash.dependencies.Output('percentage_pie', 'figure'),
-    [dash.dependencies.Input('Location2', 'value')]
+    [dash.dependencies.Input('LocationGraphs', 'value')]
 )
 def update_per_pie(selected_location):
     traces = []
@@ -882,72 +886,6 @@ def update_per_pie(selected_location):
         )
     }
 
-
-# @app.callback(
-#     dash.dependencies.Output('ospar_graph', 'figure'),
-#     # Functioning radioItems code
-#     [dash.dependencies.Input('ospar_selector', 'value')]
-# )
-# def make_ospar_graph(selected_location):
-#     # Identify locations of all entries within json file
-#     print(selected_location)
-#     # Create filtered json data from mpaJson and add features to newly created object
-#     # moved into function above
-#     filteredjson = {k: v for k, v in osparJson.items() if k != "features"}
-#     filteredjson['features'] = [x for x in osparJson["features"] if x["properties"]["Name"] == selected_location]
-#
-#     traces = []
-#
-#     traces.append(
-#         go.Scattermapbox(
-#             lat=[filteredjson['features'][k]['geometry']['coordinates'] for k in range(len(filteredjson['features']))],
-#             lon=[filteredjson['features'][k]['geometry']['coordinates'] for k in range(len(filteredjson['features']))],
-#             text=[filteredjson['features'][k]['properties']['Name'] for k in range(len(filteredjson['features']))],
-#             marker=dict(
-#                 opacity=0.6,
-#                 color=colors['ospar_cols'][selected_location]
-#             ),
-#         )
-#     )
-#     return {
-#         'data': traces,
-#         'layout': go.Layout(
-#             autosize=True,
-#             height=700,
-#             font=dict(
-#                 color=colors['text']
-#             ),
-#             titlefont=dict(
-#                 color=colors['text'],
-#                 size=14
-#             ),
-#             margin=dict(
-#                 l=20,
-#                 r=20,
-#                 b=0,
-#                 t=0
-#             ),
-#             hovermode='closest',
-#             plot_bgcolor=colors['background1'],
-#             paper_bgcolor=colors['background1'],
-#             legend=dict(
-#                 font=dict(
-#                     size=10
-#                 ),
-#                 orientation='h'
-#             ),
-#             # title='UK MPA Network',
-#             mapbox=dict(
-#                 accesstoken=mapbox_access_token,
-#                 style='dark',
-#                 center=dict(
-#                     lon=-3.6,
-#                     lat=56.2
-#                 ),
-#                 zoom=4.2
-#             ),
-#         )
-#     }
 
 app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'})
 
