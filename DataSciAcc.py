@@ -38,6 +38,7 @@ import numpy as np
 import plotly.plotly as py
 import plotly.graph_objs as go
 import json
+import urllib.request
 
 ########################################################################################################################
 
@@ -68,9 +69,30 @@ summaryAll_df = pd.read_excel(
 with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\UKMPA_SitInfo_00005_Simp.geojson') as f:
     mpaJson = json.load(f)
 
-# Import OSPAR Region GeoJson data
-with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\OSPAR_JSON.geojson') as f:
-    osparJson = json.load(f)
+# Not currently used
+
+# # Import OSPAR Region GeoJson data
+# with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\OSPAR_Simp_0_00500.geojson') as f:
+#     osparJson = json.load(f)
+
+with urllib.request.urlopen(
+        'https://odims.ospar.org/geoserver/wfs?srsName=EPSG%3A4326&typename=geonode%3Aospar_inner_boundary_2016_01&outputFormat=json&version=1.0.0&service=WFS&request=GetFeature'
+) as url:
+    odimsOspar = json.loads(url.read().decode())
+
+
+# Create table function to load summary data into dashboard
+
+def generate_table(df, max_rows=10):
+    return html.Table(
+        # Header
+        [html.Tr([html.Th(col) for col in df.columns])] +
+
+        # Body
+        [html.Tr([
+            html.Td(df.iloc[i][col]) for col in df.columns
+        ]) for i in range(min(len(df), max_rows))]
+    )
 
 
 ########################################################################################################################
@@ -104,7 +126,7 @@ colors = {
     'background1': '#F8F8FF',  # Ghost White
     'background2': '#FFFFFF',  # White
     'text': '#262626',  # Very dark grey
-    'textbox': '#FFFFFF',  # White
+    'textbox': 'rgb(255,255,255,0.9)',  # White
 
 
     'mpa_count_cols': {
@@ -122,10 +144,10 @@ colors = {
         'Total Area of NCMPAs': '#FFDFD3'},
 
     'ospar_cols': {
-        'Region I: Arctic Waters': '#E0BBE4',
-        'Region II: Greater North Sea': '#957DAD',
-        'Region III: Celtic Seas': '#D291BC',
-        'Region V: Wider Atlantic': '#FEC8D8',
+        'Region I': '#E0BBE4',
+        'Region II': '#957DAD',
+        'Region III': '#D291BC',
+        'Region V': '#FEC8D8',
     },
 
     'location_cols': {
@@ -304,49 +326,93 @@ app.layout = html.Div(
                             [
                                 dcc.Graph(id='main_graph')
                             ],
-                            className='twelve columns',
+                            className='ten columns',
                             style={'margin-top': '20',
                                    'float': 'center'},
+                        ),
+                        html.Div(
+                            [
+                                html.H1(
+                                    '',
+                                    id='mpa_number',
+                                    style={
+                                        'text-align': 'justify',
+                                        'color': colors['background1'],
+                                        'backgroundColor': colors['text'],
+                                        # 'margin': '20',
+                                        'width': '100%',
+                                        'margin-top': '100',
+                                        'font-size': '40',
+                                    }
+                                ),
+                                html.H1(
+                                    '',
+                                    id='total_area',
+                                    style={
+                                        'text-align': 'justify',
+                                        'color': colors['background1'],
+                                        'backgroundColor': colors['text'],
+                                        # 'margin': '20',
+                                        'width': '100%',
+                                        'margin-top': '100',
+                                        'font-size': '40',
+                                    }
+                                ),
+                                html.H1(
+                                    '',
+                                    id='total_percentage',
+                                    style={
+                                        'text-align': 'justify',
+                                        'color': colors['background1'],
+                                        'backgroundColor': colors['text'],
+                                        # 'margin': '20',
+                                        'width': '100%',
+                                        'margin-top': '100',
+                                        'font-size': '40',
+                                    },
+                                ),
+                            ],
+                            className='two columns'
                         ),
                     ],
                     className='row'
                 ),
 
-                # Set key stats summary text
-                html.Div(
-                    [
-                        html.H4(
-                            '',
-                            id='mpa_number',
-                            className='two columns',
-                            style={
-                                'color': colors['text'],
-                                'margin': '20',
-                            }
-                        ),
-                        html.H4(
-                            '',
-                            id='total_area',
-                            className='eight columns',
-                            style={
-                                'text-align': 'center',
-                                'color': colors['text'],
-                                'margin': '20'
-                            }
-                        ),
-                        html.H4(
-                            '',
-                            id='total_percentage',
-                            className='two columns',
-                            style={
-                                'text-align': 'right',
-                                'color': colors['text'],
-                                'margin': '20'
-                            },
-                        ),
-                    ],
-                    className='row'
-                ),
+                # # Set key stats summary text
+                # html.Div(
+                #     [
+                #         html.H4(
+                #             '',
+                #             id='mpa_number',
+                #             className='two columns',
+                #             style={
+                #                 'color': colors['text'],
+                #                 'margin': '20',
+                #             }
+                #         ),
+                #         html.H4(
+                #             '',
+                #             id='total_area',
+                #             className='eight columns',
+                #             style={
+                #                 'text-align': 'center',
+                #                 'color': colors['text'],
+                #                 'margin': '20'
+                #             }
+                #         ),
+                #         html.H4(
+                #             '',
+                #             id='total_percentage',
+                #             className='two columns',
+                #             style={
+                #                 'text-align': 'right',
+                #                 'color': colors['text'],
+                #                 'margin': '20'
+                #             },
+                #         ),
+                #     ],
+                #     className='row'
+                # ),
 
                 html.Div(
                     [
@@ -585,21 +651,6 @@ app.layout = html.Div(
                                         },
                                     },
                                 ),
-                                dcc.Markdown(
-                                    dedent('''
-                                        ## Explore the OSPAR Regions 
-                                        
-                                        ##### Use the checkboxes below to select an OSPAR Region, control the OSPAR map and display key statistics from the OSPAR Regions
-                                        '''),
-                                    containerProps={
-                                        'style': {
-                                            'textAlign': 'left',
-                                            'color': colors['text'],
-                                            'margin': '20',
-                                            'margin-top': '45'
-                                        },
-                                    }
-                                ),
                             ],
                             className='twelve columns',
                         ),
@@ -607,19 +658,6 @@ app.layout = html.Div(
                     className='row',
                 ),
 
-                html.Div(
-                    [
-                        html.Div(
-                            [
-                                dcc.Graph(id='ospar_graph')
-                            ],
-                            className='twelve columns',
-                            style={'margin-top': '20',
-                                   'float': 'center'},
-                        ),
-                    ],
-                    className='row'
-                ),
             ],
             className='ten columns offset-by-one'
         ),
@@ -748,16 +786,16 @@ def make_main_graph(selected_location):
             lon=[filteredjson['features'][k]['properties']['LONG_dd'] for k in range(len(filteredjson['features']))],
             text=[filteredjson['features'][k]['properties']['SITE_NAME'] for k in range(len(filteredjson['features']))],
             marker=dict(
-                opacity=0.6,
-                color='#FEC8D8'
+                opacity=1,
+                color='#F8F8FF'
             ),
-        )
-    )
+        ),
+    ),
     return {
         'data': traces,
         'layout': go.Layout(
             autosize=True,
-            height=700,
+            height=800,
             font=dict(
                 color=colors['text']
             ),
@@ -780,7 +818,6 @@ def make_main_graph(selected_location):
                 ),
                 orientation='h'
             ),
-            title='UK MPA Network',
             mapbox=dict(
                 accesstoken=mapbox_access_token,
                 style='dark',
@@ -794,64 +831,19 @@ def make_main_graph(selected_location):
                 layers=[
                     dict(
                         sourcetype='geojson',
-                        source=[osparJson['features'][k]['geometry']['coordinates']
-                                for k in range(len(osparJson['features']))
-                                if osparJson['features'][k]['properties']['Region_Nam'] == 'Region I'],
-                        type='fill',
-                        color='#FFDFD3'
+                        # source=osparJson,
+                        source=odimsOspar,
+                        type='line',
+                        color='#FFDFD3',
+                        # color=colors['ospar_cols']
                         ),
                     dict(
                         sourcetype='geojson',
-                        source=[osparJson['features'][k]['geometry']['coordinates']
-                                for k in range(len(osparJson['features']))
-                                if osparJson['features'][k]['properties']['Region_Nam'] == 'Region II'],
-                        type='fill',
-                        color='#FFDFD3'
-                    ),
-                    dict(
-                        sourcetype='geojson',
-                        source=[osparJson['features'][k]['geometry']['coordinates']
-                                for k in range(len(osparJson['features']))
-                                if osparJson['features'][k]['properties']['Region_Nam'] == 'Region III'],
-                        type='fill',
-                        color='#FFDFD3'
-                    ),
-                    dict(
-                        sourcetype='geojson',
-                        source=[osparJson['features'][k]['geometry']['coordinates']
-                                for k in range(len(osparJson['features']))
-                                if osparJson['features'][k]['properties']['Region_Nam'] == 'Region IV'],
-                        type='fill',
-                        color='#FFDFD3'
-                    ),
-                    dict(
-                        sourcetype='geojson',
-                        source=[osparJson['features'][k]['geometry']['coordinates']
-                                for k in range(len(osparJson['features']))
-                                if osparJson['features'][k]['properties']['Region_Nam'] == 'Region V'],
-                        type='fill',
-                        color='#FFDFD3'
-                    ),
+                        source=filteredjson,
+                        type='line',
+                        color='#FEC8D8'
+                        ),
                 ],
-                # layers=[
-                #     {
-                #         'below': 'water',
-                #         'color': '#FFDFD3',
-                #         'opacity': 0.8,
-                #         'source': {
-                #             'type': 'FeatureCollection',
-                #             'features': [
-                #                 {
-                #                     'geometry': {
-                #                         'type': 'Polygon',
-                #                         # 'id': 'Region1',
-                #                         'coordinates': [osparJson['features'][k]['geometry']['coordinates'] for k in range(len(osparJson['features'])) if osparJson['features'][k]['properties']['Region_Nam'] == 'Region I'],
-                #                     },
-                #                 },
-                #             ],
-                #         },
-                #     },
-                # ],
             ),
         ),
     }
