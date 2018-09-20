@@ -44,6 +44,7 @@ import urllib.request
 
 # Create application instance
 app = dash.Dash()
+app.config['suppress_callback_exceptions'] = True
 
 # Import MPA count data
 count_df = pd.read_excel(
@@ -66,7 +67,7 @@ summaryAll_df = pd.read_excel(
     'SummaryAll')
 
 # Import UK MPA Network GeoJson data
-with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\UKMPA_SitInfo_00005_Simp.geojson') as f:
+with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\UKMPA_wOSPAR.geojson') as f:
     mpaJson = json.load(f)
 
 # Not currently used
@@ -326,93 +327,102 @@ app.layout = html.Div(
                             [
                                 dcc.Graph(id='main_graph')
                             ],
-                            className='ten columns',
+                            className='twelve columns',
                             style={'margin-top': '20',
                                    'float': 'center'},
                         ),
-                        html.Div(
-                            [
-                                html.H1(
-                                    '',
-                                    id='mpa_number',
-                                    style={
-                                        'text-align': 'justify',
-                                        'color': colors['background1'],
-                                        'backgroundColor': colors['text'],
-                                        # 'margin': '20',
-                                        'width': '100%',
-                                        'margin-top': '100',
-                                        'font-size': '40',
-                                    }
-                                ),
-                                html.H1(
-                                    '',
-                                    id='total_area',
-                                    style={
-                                        'text-align': 'justify',
-                                        'color': colors['background1'],
-                                        'backgroundColor': colors['text'],
-                                        # 'margin': '20',
-                                        'width': '100%',
-                                        'margin-top': '100',
-                                        'font-size': '40',
-                                    }
-                                ),
-                                html.H1(
-                                    '',
-                                    id='total_percentage',
-                                    style={
-                                        'text-align': 'justify',
-                                        'color': colors['background1'],
-                                        'backgroundColor': colors['text'],
-                                        # 'margin': '20',
-                                        'width': '100%',
-                                        'margin-top': '100',
-                                        'font-size': '40',
-                                    },
-                                ),
-                            ],
-                            className='two columns'
-                        ),
+                        # html.Div(
+                        #     [
+                        #         html.H1(
+                        #             '',
+                        #             id='mpa_number',
+                        #             style={
+                        #                 'text-align': 'center',
+                        #                 'color': '#FEC8D8',
+                        #                 'backgroundColor': colors['text'],
+                        #                 # 'display': 'inline-block',
+                        #                 'width': '100%',
+                        #                 'height': '300',
+                        #                 'margin-top': '20',
+                        #                 'font-size': '40',
+                        #                 'margin': dict(
+                        #                     l=0,
+                        #                     r=20,
+                        #                     b=0,
+                        #                     t=20,
+                        #                 ),
+                        #             },
+                        #         ),
+                        #         html.H1(
+                        #             '',
+                        #             id='total_area',
+                        #             style={
+                        #                 'text-align': 'center',
+                        #                 'color': colors['background1'],
+                        #                 'backgroundColor': colors['text'],
+                        #                 # 'display': 'inline-block',
+                        #                 'width': '100%',
+                        #                 'height': '300',
+                        #                 # 'margin-top': '100',
+                        #                 'font-size': '40',
+                        #             }
+                        #         ),
+                        #         html.H1(
+                        #             '',
+                        #             id='total_percentage',
+                        #             style={
+                        #                 'text-align': 'center',
+                        #                 'color': '#FEC8D8',
+                        #                 'backgroundColor': colors['text'],
+                        #                 # 'display': 'inline-block',
+                        #                 'width': '100%',
+                        #                 'height': '300',
+                        #                 # 'margin-top': '100',
+                        #                 'font-size': '40',
+                        #             },
+                        #         ),
+                        #     ],
+                        #     className='two columns'
+                        # ),
                     ],
                     className='row'
                 ),
 
-                # # Set key stats summary text
-                # html.Div(
-                #     [
-                #         html.H4(
-                #             '',
-                #             id='mpa_number',
-                #             className='two columns',
-                #             style={
-                #                 'color': colors['text'],
-                #                 'margin': '20',
-                #             }
-                #         ),
-                #         html.H4(
-                #             '',
-                #             id='total_area',
-                #             className='eight columns',
-                #             style={
-                #                 'text-align': 'center',
-                #                 'color': colors['text'],
-                #                 'margin': '20'
-                #             }
-                #         ),
-                #         html.H4(
-                #             '',
-                #             id='total_percentage',
-                #             className='two columns',
-                #             style={
-                #                 'text-align': 'right',
-                #                 'color': colors['text'],
-                #                 'margin': '20'
-                #             },
-                #         ),
-                #     ],
-                #     className='row'
-                # ),
+                # Set key stats summary text
+                html.Div(
+                    [
+                        html.H4(
+                            '',
+                            id='mpa_number',
+                            className='two columns',
+                            style={
+                                'color': colors['text'],
+                                'margin': '20',
+                            }
+                        ),
+                        html.H4(
+                            '',
+                            id='total_area',
+                            className='eight columns',
+                            style={
+                                'text-align': 'center',
+                                'color': colors['text'],
+                                'margin': '20'
+                            }
+                        ),
+                        html.H4(
+                            '',
+                            id='total_percentage',
+                            className='two columns',
+                            style={
+                                'text-align': 'right',
+                                'color': colors['text'],
+                                'margin': '20'
+                            },
+                        ),
+                    ],
+                    className='row'
+                ),
 
                 html.Div(
                     [
@@ -657,7 +667,6 @@ app.layout = html.Div(
                     ],
                     className='row',
                 ),
-
             ],
             className='ten columns offset-by-one'
         ),
@@ -759,6 +768,16 @@ def filtered_location(selected_location):
     elif selected_location == 'Northern Ireland':
         return [x for x in mpaJson["features"] if 'Northern Ireland' in x["properties"]["Country"]]
 
+    # Returns for OSPAR Selections - YAY THANK YOU TOM
+    elif selected_location == 'Region I: Arctic Waters':
+        return [x for x in mpaJson["features"] if 'Arctic Waters' in x["properties"]["OSPAR_Re_1"]]
+    elif selected_location == 'Region II: Greater North Sea':
+        return [x for x in mpaJson["features"] if 'Greater North Sea' in x["properties"]["OSPAR_Re_1"]]
+    elif selected_location == 'Region III: Celtic Seas':
+        return [x for x in mpaJson["features"] if 'Celtic Seas' in x["properties"]["OSPAR_Re_1"]]
+    elif selected_location == 'Region V: Wider Atlantic':
+        return [x for x in mpaJson["features"] if 'Wider Atlantic' in x["properties"]["OSPAR_Re_1"]]
+
     # Singular returns for singular selected locations
     else:
         return [x for x in mpaJson["features"] if x["properties"]["Country"] == selected_location]
@@ -786,8 +805,7 @@ def make_main_graph(selected_location):
             lon=[filteredjson['features'][k]['properties']['LONG_dd'] for k in range(len(filteredjson['features']))],
             text=[filteredjson['features'][k]['properties']['SITE_NAME'] for k in range(len(filteredjson['features']))],
             marker=dict(
-                opacity=1,
-                color='#F8F8FF'
+                color=colors['text'],
             ),
         ),
     ),
@@ -795,7 +813,7 @@ def make_main_graph(selected_location):
         'data': traces,
         'layout': go.Layout(
             autosize=True,
-            height=800,
+            height=900,
             font=dict(
                 color=colors['text']
             ),
@@ -831,10 +849,9 @@ def make_main_graph(selected_location):
                 layers=[
                     dict(
                         sourcetype='geojson',
-                        # source=osparJson,
                         source=odimsOspar,
                         type='line',
-                        color='#FFDFD3',
+                        color='#d3d3d3'  # '#FFDFD3',
                         # color=colors['ospar_cols']
                         ),
                     dict(
@@ -845,6 +862,54 @@ def make_main_graph(selected_location):
                         ),
                 ],
             ),
+            # Create interactive buttons on mapper for filtering
+            updatemenus=[
+                dict(
+                    buttons=([
+                        dict(
+                            args=[{
+                                # 'mapbox.layers.source': odimsOspar
+                            }],
+                            label='All UK waters (EEZ+UKCS)',
+                            method='restyle',
+                        ),
+                        dict(
+                            args=[{
+                                # 'mapbox.layers.source': odimsOspar
+                            }],
+                            label='UK inshore (territorial seas)',
+                            method='restyle',
+                        ),
+                        dict(
+                            args=[{
+                                # 'mapbox.layers.source': odimsOspar
+                            }],
+                            label='UK offshore',
+                            method='restyle',
+                        ),
+                        dict(
+                            args=[{
+                                'mapbox.layers.source': odimsOspar
+                            }],
+                            label='Show OSPAR Regions',
+                            method='update',
+                        ),
+                    ]),
+                    direction='down',
+                    pad={'r': 0, 't': 0, 'b': 0, 'l': 0},
+                    showactive=False,
+                    bgcolor=colors['text'],
+                    type='buttons',
+                    yanchor='bottom',
+                    xanchor='left',
+                    font=dict(
+                        color=colors['background2'],
+                        size=20
+                    ),
+                    x=0,
+                    y=0.05
+                ),
+            ],
         ),
     }
 
