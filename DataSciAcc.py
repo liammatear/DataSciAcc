@@ -44,6 +44,7 @@ import urllib.request
 
 # Create application instance
 app = dash.Dash()
+# Allow multiple callback operators to influence each other - set to True
 app.config['suppress_callback_exceptions'] = True
 
 # Import MPA count data
@@ -62,38 +63,25 @@ percentage_df = pd.read_excel(
     'C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\input\Stats\\OfficialSensitive_UKMPA_STATS.xlsx',
     'UK_percentage')
 
+# Import summary statistics data
 summaryAll_df = pd.read_excel(
     'C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\input\Stats\\OfficialSensitive_UKMPA_STATS.xlsx',
     'SummaryAll')
+
+# Import summary statistics data
+summaryOSPAR_df = pd.read_excel(
+    'C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\input\Stats\\OfficialSensitive_UKMPA_STATS.xlsx',
+    'SummaryOSPAR')
 
 # Import UK MPA Network GeoJson data
 with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\UKMPA_wOSPAR.geojson') as f:
     mpaJson = json.load(f)
 
-# Not currently used
-
-# # Import OSPAR Region GeoJson data
-# with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\OSPAR_Simp_0_00500.geojson') as f:
-#     osparJson = json.load(f)
-
+# Import UK OSPAR regions json data - wfs Geo Server request
 with urllib.request.urlopen(
         'https://odims.ospar.org/geoserver/wfs?srsName=EPSG%3A4326&typename=geonode%3Aospar_inner_boundary_2016_01&outputFormat=json&version=1.0.0&service=WFS&request=GetFeature'
 ) as url:
     odimsOspar = json.loads(url.read().decode())
-
-
-# Create table function to load summary data into dashboard
-
-def generate_table(df, max_rows=10):
-    return html.Table(
-        # Header
-        [html.Tr([html.Th(col) for col in df.columns])] +
-
-        # Body
-        [html.Tr([
-            html.Td(df.iloc[i][col]) for col in df.columns
-        ]) for i in range(min(len(df), max_rows))]
-    )
 
 
 ########################################################################################################################
@@ -127,7 +115,7 @@ colors = {
     'background1': '#F8F8FF',  # Ghost White
     'background2': '#FFFFFF',  # White
     'text': '#262626',  # Very dark grey
-    'textbox': 'rgb(255,255,255,0.9)',  # White
+    'textbox': 'rgb(255,255,255,0.5)',  # White
 
 
     'mpa_count_cols': {
@@ -189,32 +177,32 @@ app.layout = html.Div(
         html.Div(
             style={'backgroundColor': colors['background1']}, children=[
                 html.Div(
-                    # Set application title, colour and orientation
-                    html.H1(
-                        children='UK Marine Protected Area (MPA) Network Statistics',
-                        className='twelve columns',
-                        style={
-                            'textAlign': 'center',
-                            'color': colors['text'],
-                            'backgroundColor': colors['background1'],
-                            'width': '100%',
-                            # 'display': 'block',
-                            'margin-top': '80',
-                            'font-size': '58',
-                        },
-                    ),
+                    children=[
+                        # Set application title, colour and orientation
+                        html.H1(
+                            children='UK Marine Protected Area (MPA) Network Statistics',
+                            className='nine columns',
+                            style={
+                                'textAlign': 'left',
+                                'color': colors['text'],
+                                'backgroundColor': colors['background1'],
+                                # 'width': '100%',
+                                # 'display': 'block',
+                                'margin-top': '80',
+                                'font-size': '50',
+                            },
+                        ),
 
-                    # html.Img(
-                    #     src='https://github.com/liammatear/DataSciAcc/blob/master/JNCCLogo_Grey.png',
-                    #     className='one columns',
-                    #     style={
-                    #          'height': '100',
-                    #          'width': '225',
-                    #          'float': 'right',
-                    #          'position': 'relative',
-                    #          'backgroundColor': colors['background']
-                    #     },
-                    # ),
+                        html.Img(
+                            src='https://github.com/liammatear/DataSciAcc/raw/master/JNCCLogo_Black.png',
+                            className='three columns',
+                            style={
+                                 'float': 'right',
+                                'margin-top': '40',
+                                 'backgroundColor': colors['background1']
+                            },
+                        )
+                    ],
                 ),
 
                 html.Div(
@@ -245,7 +233,7 @@ app.layout = html.Div(
                                             'color': colors['text'],
                                             'backgroundColor': colors['textbox'],
                                             'margin': '20',
-                                            'font-size': '20'
+                                            'font-size': '20',
                                             # 'margin-top': '45'
                                         },
                                     }
@@ -264,16 +252,13 @@ app.layout = html.Div(
                                 dcc.Markdown(
                                     dedent('''
                                     # Explore Our Protected Area Network:
-                                    
-                                    ##### Select a location from the drop-down menu below to filter the map and find out key statistics from our [Marine Protected Network](http://jncc.defra.gov.uk/page-4524)
-                                    Use the checkbox to filter your options at a UK level, individual countries and OSPAR regions
                                                                        '''),
                                     containerProps={
                                         'style': {
                                             'textAlign': 'left',
                                             'color': colors['text'],
                                             'margin': '20',
-                                            'margin-top': '45'
+                                            'margin-top': '35'
                                         },
                                     },
                                 ),
@@ -286,11 +271,26 @@ app.layout = html.Div(
 
                 # Set control panel - Location drop-down menu
                 html.Div(
-                    [
+                    style={'backgroundColor': colors['text']}, children=[
                         html.Div(
-                            [
+                            style={'backgroundColor': colors['text']}, children=[
                                 html.Div(
                                     [
+                                        dcc.Markdown(
+                                            dedent('''
+                                    Use the checkbox to filter locations at a UK level, by individual country and OSPAR Regions
+                                                                       '''),
+                                            containerProps={
+                                                'style': {
+                                                    'textAlign': 'left',
+                                                    'color': colors['background2'],
+                                                    'opacity': 0.9,
+                                                    'font-size': '16',
+                                                    'margin': 10,
+                                                },
+                                            },
+                                        ),
+
                                         dcc.RadioItems(
                                             id='mainSelector',
                                             options=[
@@ -299,126 +299,117 @@ app.layout = html.Div(
                                                 {'label': 'OSPAR Region', 'value': 'OSPAR'},
                                             ],
                                             value='UK',
-                                            labelStyle={'display': 'inline-block',
-                                                        'color': colors['text']}
-                                        ),
-                                        dcc.Dropdown(
-                                            id='Location',
-                                            # options=[{'label': i, 'value': i} for i in availableLocations],
-                                            options=[],
-                                            # Allows for all or singular filtering
-                                            multi=False,
-                                            # value=list(availableLocations)
-                                            # Old singular dropdown
-                                            value='All UK waters (EEZ+UKCS)',
+                                            labelStyle={
+                                                'display': 'inline-block',
+                                                'color': colors['background2'],
+                                                'backgroundColor': colors['text'],
+                                                'font-size': 20,
+                                                'opacity': 0.9,
+                                                }
                                         ),
                                     ],
                                 ),
                             ],
-                            className='twelve columns'
+                            className='six columns'
+                        ),
+                        html.Div(
+                            style={
+                                'backgroundColor': colors['text'],
+                                # 'margin-top': '10',
+                                # 'font-size': 20,
+                            }, children=[
+                                html.Div(
+                                    [
+                                        dcc.Markdown(
+                                            dedent('''
+                                    Select a location from the drop-down tab below
+                                                                       '''),
+                                            containerProps={
+                                                'style': {
+                                                    'textAlign': 'right',
+                                                    'color': colors['background2'],
+                                                    'opacity': 0.9,
+                                                    'font-size': '16',
+                                                    'margin': 10,
+                                                },
+                                            },
+                                        ),
+                                        dcc.Dropdown(
+                                            id='Location',
+                                            options=[],
+                                            # Allows for all or singular filtering
+                                            multi=False,
+                                            # value=list(availableLocations)
+                                            value='All UK waters (EEZ+UKCS)',
+                                            placeholder="Select a location to begin exploring!",
+                                        ),
+                                    ],
+                                ),
+                            ],
+                            className='six columns'
                         ),
                     ],
                     className='row'
                 ),
 
                 html.Div(
-                    [
+                    style={'backgroundColor': colors['text']}, children=[
                         html.Div(
                             [
                                 dcc.Graph(id='main_graph')
                             ],
-                            className='twelve columns',
+                            className='ten columns',
                             style={'margin-top': '20',
-                                   'float': 'center'},
+                                   'float': 'center',
+                                   'backgroundColor': colors['text'],
+                                   },
                         ),
-                        # html.Div(
-                        #     [
-                        #         html.H1(
-                        #             '',
-                        #             id='mpa_number',
-                        #             style={
-                        #                 'text-align': 'center',
-                        #                 'color': '#FEC8D8',
-                        #                 'backgroundColor': colors['text'],
-                        #                 # 'display': 'inline-block',
-                        #                 'width': '100%',
-                        #                 'height': '300',
-                        #                 'margin-top': '20',
-                        #                 'font-size': '40',
-                        #                 'margin': dict(
-                        #                     l=0,
-                        #                     r=20,
-                        #                     b=0,
-                        #                     t=20,
-                        #                 ),
-                        #             },
-                        #         ),
-                        #         html.H1(
-                        #             '',
-                        #             id='total_area',
-                        #             style={
-                        #                 'text-align': 'center',
-                        #                 'color': colors['background1'],
-                        #                 'backgroundColor': colors['text'],
-                        #                 # 'display': 'inline-block',
-                        #                 'width': '100%',
-                        #                 'height': '300',
-                        #                 # 'margin-top': '100',
-                        #                 'font-size': '40',
-                        #             }
-                        #         ),
-                        #         html.H1(
-                        #             '',
-                        #             id='total_percentage',
-                        #             style={
-                        #                 'text-align': 'center',
-                        #                 'color': '#FEC8D8',
-                        #                 'backgroundColor': colors['text'],
-                        #                 # 'display': 'inline-block',
-                        #                 'width': '100%',
-                        #                 'height': '300',
-                        #                 # 'margin-top': '100',
-                        #                 'font-size': '40',
-                        #             },
-                        #         ),
-                        #     ],
-                        #     className='two columns'
-                        # ),
-                    ],
-                    className='row'
-                ),
-
-                # Set key stats summary text
-                html.Div(
-                    [
-                        html.H4(
-                            '',
-                            id='mpa_number',
-                            className='two columns',
-                            style={
-                                'color': colors['text'],
-                                'margin': '20',
-                            }
-                        ),
-                        html.H4(
-                            '',
-                            id='total_area',
-                            className='eight columns',
-                            style={
-                                'text-align': 'center',
-                                'color': colors['text'],
-                                'margin': '20'
-                            }
-                        ),
-                        html.H4(
-                            '',
-                            id='total_percentage',
-                            className='two columns',
-                            style={
-                                'text-align': 'right',
-                                'color': colors['text'],
-                                'margin': '20'
-                            },
+                        html.Div(
+                            [
+                                html.H1(
+                                    '',
+                                    id='mpa_number',
+                                    style={
+                                        'text-align': 'center',
+                                        'color': colors['background2'],
+                                        'display': 'inline-block',
+                                        'height': 200,
+                                        'margin-top': 20,
+                                        'margin': 20,
+                                        'font-size': 38,
+                                        'opacity': 0.9,
+                                    },
+                                ),
+                                html.H1(
+                                    '',
+                                    id='total_area',
+                                    style={
+                                        'text-align': 'center',
+                                        'color': colors['background2'],
+                                        'display': 'inline-block',
+                                        'height': 200,
+                                        'font-size': 38,
+                                        'margin-top': 20,
+                                        'margin': 20,
+                                        'opacity': 0.9,
+                                    }
+                                ),
+                                html.H1(
+                                    '',
+                                    id='total_percentage',
+                                    style={
+                                        'text-align': 'center',
+                                        'color': colors['background2'],
+                                        'display': 'inline-block',
+                                        'height': 200,
+                                        'font-size': 38,
+                                        'opacity': 0.9,
+                                        'margin-top': 20,
+                                        'margin': 20,
+                                    },
+                                ),
+                            ],
+                            className='two columns'
                         ),
                     ],
                     className='row'
@@ -554,7 +545,7 @@ app.layout = html.Div(
                                     [
                                         dcc.Dropdown(
                                             id='LocationGraphs',
-                                            options=[{'label': i, 'value': i} for i in availableLocationsGraphs],
+                                            options=[{'label': i, 'value': i} for i in availableLocations],
                                             # Allows for all or singular filtering
                                             multi=False,
                                             # value=list(availableLocations),
@@ -697,16 +688,41 @@ def main_control(main_filter):
     return options
 
 
+########################################################################################################################
+
+# Create callback operators for key summary statistical returns
+
 # Create application callback decorator to update the Total MPA Number text box in key summary header
 @app.callback(
     dash.dependencies.Output('mpa_number', 'children'),
     [dash.dependencies.Input('Location', 'value')]
 )
 def summary_mpa_count(selected_location):
-    filtered_df = summaryAll_df[summaryAll_df.Location == selected_location]
-    result = filtered_df['Total no. of MPAs']
-    for each in result:
-        return 'Total no. of MPAs: ' + str(each)
+    if selected_location == 'Region I: Arctic Waters':
+        filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
+        result = filtered_df['Area of OSPAR region (km2)']
+        for each in result:
+            return 'Area of OSPAR Region (km2): ' + str(each)
+    elif selected_location == 'Region II: Greater North Sea':
+        filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
+        result = filtered_df['Area of OSPAR region (km2)']
+        for each in result:
+            return 'Area of OSPAR Region (km2): ' + str(each)
+    elif selected_location == 'Region III: Celtic Seas':
+        filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
+        result = filtered_df['Area of OSPAR region (km2)']
+        for each in result:
+            return 'Area of OSPAR Region (km2): ' + str(each)
+    elif selected_location == 'Region V: Wider Atlantic':
+        filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
+        result = filtered_df['Area of OSPAR region (km2)']
+        for each in result:
+            return 'Area of OSPAR Region (km2): ' + str(each)
+    else:
+        filtered_df = summaryAll_df[summaryAll_df.Location == selected_location]
+        result = filtered_df['Total no. of MPAs']
+        for each in result:
+            return 'Total no. of MPAs: ' + str(each)
 
 
 # Create application callback decorator to update Total Area Number text box in key summary header
@@ -715,10 +731,31 @@ def summary_mpa_count(selected_location):
     [dash.dependencies.Input('Location', 'value')]
 )
 def summary_mpa_area(selected_location):
-    filtered_df = summaryAll_df[summaryAll_df.Location == selected_location]
-    result = filtered_df['Total Area of MPAs']
-    for each in result:
-        return 'Total Area of MPAs (km2):  ' + str(each)
+    if selected_location == 'Region I: Arctic Waters':
+        filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
+        result = filtered_df['Area of UK MPAs (km2)']
+        for each in result:
+            return 'Area of UK MPAs (km2): ' + str(each)
+    elif selected_location == 'Region II: Greater North Sea':
+        filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
+        result = filtered_df['Area of UK MPAs (km2)']
+        for each in result:
+            return 'Area of UK MPAs (km2): ' + str(each)
+    elif selected_location == 'Region III: Celtic Seas':
+        filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
+        result = filtered_df['Area of UK MPAs (km2)']
+        for each in result:
+            return 'Area of UK MPAs (km2): ' + str(each)
+    elif selected_location == 'Region V: Wider Atlantic':
+        filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
+        result = filtered_df['Area of UK MPAs (km2)']
+        for each in result:
+            return 'Area of UK MPAs (km2): ' + str(each)
+    else:
+        filtered_df = summaryAll_df[summaryAll_df.Location == selected_location]
+        result = filtered_df['Total Area of MPAs']
+        for each in result:
+            return 'Total Area of MPAs (km2):  ' + str(each)
 
 
 # Create application callback decorator to update Total Percent Covered by MPA text box in key summary header
@@ -727,10 +764,31 @@ def summary_mpa_area(selected_location):
     [dash.dependencies.Input('Location', 'value')]
 )
 def summary_mpa_area(selected_location):
-    filtered_df = summaryAll_df[summaryAll_df.Location == selected_location]
-    result = filtered_df['Total % of location covered by MPAs']
-    for each in result:
-        return 'Total % covered by MPAs:  ' + str(each) + '%'
+    if selected_location == 'Region I: Arctic Waters':
+        filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
+        result = filtered_df['% of OSPAR region']
+        for each in result:
+            return '% of OSPAR Region: ' + str(each) + '%'
+    elif selected_location == 'Region II: Greater North Sea':
+        filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
+        result = filtered_df['% of OSPAR region']
+        for each in result:
+            return '% of OSPAR Region: ' + str(each) + '%'
+    elif selected_location == 'Region III: Celtic Seas':
+        filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
+        result = filtered_df['% of OSPAR region']
+        for each in result:
+            return '% of OSPAR Region: ' + str(each) + '%'
+    elif selected_location == 'Region V: Wider Atlantic':
+        filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
+        result = filtered_df['% of OSPAR region']
+        for each in result:
+            return '% of OSPAR Region: ' + str(each) + '%'
+    else:
+        filtered_df = summaryAll_df[summaryAll_df.Location == selected_location]
+        result = filtered_df['Total % of location covered by MPAs']
+        for each in result:
+            return 'Total % covered by MPAs:  ' + str(each) + '%'
 
 
 ########################################################################################################################
@@ -738,6 +796,101 @@ def summary_mpa_area(selected_location):
 #                                         Graphs / Data Visualisation Callbacks
 
 ########################################################################################################################
+
+# Create function to filter latitude based on selected_location
+
+def filtered_lat(selected_location):
+    # Returns for all UK data
+    if selected_location == 'All UK waters (EEZ+UKCS)':
+        return 56.6
+    elif selected_location == 'UK inshore (territorial seas)':
+        return 56.6
+    elif selected_location == 'UK offshore':
+        return 56.6
+
+    # Returns for Inshore and Offshore by country data
+    elif selected_location == 'England':
+        return 52.6
+    elif selected_location == 'Wales':
+        return 52.15
+    elif selected_location == 'Scotland':
+        return 59.5
+    elif selected_location == 'Northern Ireland':
+        return 54.4
+
+    # Returns for OSPAR Selections - THANK YOU TOM
+    elif selected_location == 'Region I: Arctic Waters':
+        return 61.6
+    elif selected_location == 'Region II: Greater North Sea':
+        return 57.2
+    elif selected_location == 'Region III: Celtic Seas':
+        return 54.5
+    elif selected_location == 'Region V: Wider Atlantic':
+        return 54.5
+
+
+# Create function to filter longitude based on selected_location
+
+def filtered_long(selected_location):
+    # Returns for all UK data
+    if selected_location == 'All UK waters (EEZ+UKCS)':
+        return -3.9
+    elif selected_location == 'UK inshore (territorial seas)':
+        return -3.9
+    elif selected_location == 'UK offshore':
+        return -3.9
+
+    # Returns for Inshore and Offshore by country data
+    elif selected_location == 'England':
+        return -2.5
+    elif selected_location == 'Wales':
+        return -4.8
+    elif selected_location == 'Scotland':
+        return -6.2
+    elif selected_location == 'Northern Ireland':
+        return -5.8
+
+    # Returns for OSPAR Selections - THANK YOU TOM
+    elif selected_location == 'Region I: Arctic Waters':
+        return -4.6
+    elif selected_location == 'Region II: Greater North Sea':
+        return -4.2
+    elif selected_location == 'Region III: Celtic Seas':
+        return -6.2
+    elif selected_location == 'Region V: Wider Atlantic':
+        return -10.0
+
+
+# Create function to reset zoom dependent on selected_location
+
+def filtered_zoom(selected_location):
+    # Returns for all UK data
+    if selected_location == 'All UK waters (EEZ+UKCS)':
+        return 4.0
+    elif selected_location == 'UK inshore (territorial seas)':
+        return 4.0
+    elif selected_location == 'UK offshore':
+        return 4.0
+
+    # Returns for Inshore and Offshore by country data
+    elif selected_location == 'England':
+        return 5.0
+    elif selected_location == 'Wales':
+        return 6.1
+    elif selected_location == 'Scotland':
+        return 4.6
+    elif selected_location == 'Northern Ireland':
+        return 6.5
+
+    # Returns for OSPAR Selections - THANK YOU TOM
+    elif selected_location == 'Region I: Arctic Waters':
+        return 5.0
+    elif selected_location == 'Region II: Greater North Sea':
+        return 4.1
+    elif selected_location == 'Region III: Celtic Seas':
+        return 4.5
+    elif selected_location == 'Region V: Wider Atlantic':
+        return 4.4
 
 
 # Create function to filter data by selected_location
@@ -748,7 +901,6 @@ def filtered_location(selected_location):
     then provide a return which is a combination of multiple singular returns. Otherwise,
     if the input location is a singular value, then return the singular output.
     """
-    # filteredjson = {k: v for k, v in mpaJson.items() if k != "features"}
 
     # Returns for all UK data
     if selected_location == 'All UK waters (EEZ+UKCS)':
@@ -806,6 +958,7 @@ def make_main_graph(selected_location):
             text=[filteredjson['features'][k]['properties']['SITE_NAME'] for k in range(len(filteredjson['features']))],
             marker=dict(
                 color=colors['text'],
+                opacity=0,
             ),
         ),
     ),
@@ -813,7 +966,7 @@ def make_main_graph(selected_location):
         'data': traces,
         'layout': go.Layout(
             autosize=True,
-            height=900,
+            height=700,
             font=dict(
                 color=colors['text']
             ),
@@ -822,8 +975,8 @@ def make_main_graph(selected_location):
                 size=14
             ),
             margin=dict(
-                l=20,
-                r=20,
+                l=0,
+                r=0,
                 b=0,
                 t=0
             ),
@@ -839,20 +992,18 @@ def make_main_graph(selected_location):
             mapbox=dict(
                 accesstoken=mapbox_access_token,
                 style='dark',
-                # center='auto',
                 center=dict(
-                    lon=-3.6,
-                    lat=56.2
+                    lon=filtered_long(selected_location),
+                    lat=filtered_lat(selected_location),
                 ),
-                zoom=4.2,
+                zoom=filtered_zoom(selected_location),
                 # Add OSPAR Regional Data Layers - Outlines to map
                 layers=[
                     dict(
                         sourcetype='geojson',
                         source=odimsOspar,
                         type='line',
-                        color='#d3d3d3'  # '#FFDFD3',
-                        # color=colors['ospar_cols']
+                        color='#d3d3d3'
                         ),
                     dict(
                         sourcetype='geojson',
@@ -862,54 +1013,6 @@ def make_main_graph(selected_location):
                         ),
                 ],
             ),
-            # Create interactive buttons on mapper for filtering
-            updatemenus=[
-                dict(
-                    buttons=([
-                        dict(
-                            args=[{
-                                # 'mapbox.layers.source': odimsOspar
-                            }],
-                            label='All UK waters (EEZ+UKCS)',
-                            method='restyle',
-                        ),
-                        dict(
-                            args=[{
-                                # 'mapbox.layers.source': odimsOspar
-                            }],
-                            label='UK inshore (territorial seas)',
-                            method='restyle',
-                        ),
-                        dict(
-                            args=[{
-                                # 'mapbox.layers.source': odimsOspar
-                            }],
-                            label='UK offshore',
-                            method='restyle',
-                        ),
-                        dict(
-                            args=[{
-                                'mapbox.layers.source': odimsOspar
-                            }],
-                            label='Show OSPAR Regions',
-                            method='update',
-                        ),
-                    ]),
-                    direction='down',
-                    pad={'r': 0, 't': 0, 'b': 0, 'l': 0},
-                    showactive=False,
-                    bgcolor=colors['text'],
-                    type='buttons',
-                    yanchor='bottom',
-                    xanchor='left',
-                    font=dict(
-                        color=colors['background2'],
-                        size=20
-                    ),
-                    x=0,
-                    y=0.05
-                ),
-            ],
         ),
     }
 
