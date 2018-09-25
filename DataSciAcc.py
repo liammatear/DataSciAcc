@@ -73,15 +73,27 @@ summaryOSPAR_df = pd.read_excel(
     'C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\input\Stats\\OfficialSensitive_UKMPA_STATS.xlsx',
     'SummaryOSPAR')
 
+# Import OSPAR management data
+summaryManagement_df = pd.read_excel(
+    'C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\input\Stats\\OfficialSensitive_UKMPA_STATS.xlsx',
+    'SummaryManagement')
+
 # Import UK MPA Network GeoJson data
 with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\UKMPA_wOSPAR.geojson') as f:
     mpaJson = json.load(f)
 
-# Import UK OSPAR regions json data - wfs Geo Server request
-with urllib.request.urlopen(
-        'https://odims.ospar.org/geoserver/wfs?srsName=EPSG%3A4326&typename=geonode%3Aospar_inner_boundary_2016_01&outputFormat=json&version=1.0.0&service=WFS&request=GetFeature'
-) as url:
-    odimsOspar = json.loads(url.read().decode())
+# Import OSPAR boundaries GeoJson data
+with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\OSPAR_Boundaries.geojson') as f2:
+    osparBoundaries = json.load(f2)
+
+
+# Keeps crashing - ODIMS OSPAR server issues when streaming hosted data
+
+# # Import UK OSPAR regions json data - wfs Geo Server request
+# with urllib.request.urlopen(
+#         'https://odims.ospar.org/geoserver/wfs?srsName=EPSG%3A4326&typename=geonode%3Aospar_inner_boundary_2016_01&outputFormat=json&version=1.0.0&service=WFS&request=GetFeature'
+# ) as url:
+#     odimsOspar = json.loads(url.read().decode())
 
 
 ########################################################################################################################
@@ -112,10 +124,10 @@ osparRegions = [
 # Setup initial app colours
 
 colors = {
-    'background1': '#F8F8FF',  # Ghost White
-    'background2': '#FFFFFF',  # White
+    'background1': 'rgb(248,248,255)',  # Ghost White
+    'background2': 'rgb(248,248,255)',  # White '#FFFFFF'
     'text': '#262626',  # Very dark grey
-    'textbox': 'rgb(255,255,255,0.5)',  # White
+    'textbox': 'rgb(248,248,255)',  # White 'rgb(255,255,255,0.5)'
 
 
     'mpa_count_cols': {
@@ -137,6 +149,11 @@ colors = {
         'Region II': '#957DAD',
         'Region III': '#D291BC',
         'Region V': '#FEC8D8',
+    },
+
+    'management_cols': {
+        'Yes': '#E0BBE4',
+        'Partial': '#957DAD',
     },
 
     'location_cols': {
@@ -180,25 +197,23 @@ app.layout = html.Div(
                     children=[
                         # Set application title, colour and orientation
                         html.H1(
-                            children='UK Marine Protected Area (MPA) Network Statistics',
-                            className='nine columns',
+                            children='UK Marine Protected Area Network Statistics',
+                            className='eight columns',
                             style={
                                 'textAlign': 'left',
                                 'color': colors['text'],
                                 'backgroundColor': colors['background1'],
-                                # 'width': '100%',
-                                # 'display': 'block',
-                                'margin-top': '80',
+                                'margin-top': '100',
                                 'font-size': '50',
                             },
                         ),
 
                         html.Img(
                             src='https://github.com/liammatear/DataSciAcc/raw/master/JNCCLogo_Black.png',
-                            className='three columns',
+                            className='four columns',
                             style={
                                  'float': 'right',
-                                'margin-top': '40',
+                                'margin-top': '20',
                                  'backgroundColor': colors['background1']
                             },
                         )
@@ -210,7 +225,7 @@ app.layout = html.Div(
                         html.Div(
                             [
                                 html.H1(
-                                    ' Marine Protected Areas ',
+                                    ' Marine Protected Areas (MPAs)',
                                     style={
                                         'color': colors['text'],
                                         'text-align': 'left',
@@ -234,7 +249,6 @@ app.layout = html.Div(
                                             'backgroundColor': colors['textbox'],
                                             'margin': '20',
                                             'font-size': '20',
-                                            # 'margin-top': '45'
                                         },
                                     }
                                 ),
@@ -416,6 +430,56 @@ app.layout = html.Div(
                 ),
 
                 html.Div(
+                    style={'backgroundColor': colors['text']}, children=[
+                        html.Div(
+                            [
+                                dcc.Graph(
+                                    id='documented_pie',
+                                ),
+                            ],
+                            className='three columns',
+                        ),
+                        html.Div(
+                            [
+                                dcc.Graph(
+                                    id='implemented_pie',
+                                ),
+                            ],
+                            className='three columns',
+                        ),
+                        html.Div(
+                            [
+                                dcc.Graph(
+                                    id='monitoring_pie',
+                                ),
+                            ],
+                            className='three columns',
+                        ),
+                        html.Div(
+                            [
+                                dcc.Graph(
+                                    id='objectives_pie',
+                                ),
+                            ],
+                            className='three columns',
+                        ),
+                    ],
+                    className='row'
+                ),
+                # html.Div(
+                #     [
+                #         html.Div(
+                #             [
+                #                 dcc.Textarea(
+                #                     id='ospar_explanation'
+                #                 ),
+                #             ],
+                #         ),
+                #     ],
+                #     className='twelve columns'
+                # ),
+
+                html.Div(
                     [
                             html.Div(
                                 [
@@ -516,7 +580,7 @@ app.layout = html.Div(
                             [
                                 dcc.Markdown(
                                     dedent('''
-                                    ## Key Facts by MPA Designation:
+                                    ## Data by MPA Designation:
 
                                     ##### Change location using the filter below to toggle the types of MPA displayed in the graphs 
                                                                         '''),
@@ -667,7 +731,7 @@ app.layout = html.Div(
 
 ########################################################################################################################
 
-#                                          Key Summary Header Text Callbacks
+#                                     Main Controls: RadioItems / checkbox callbacks
 
 ########################################################################################################################
 
@@ -687,6 +751,10 @@ def main_control(main_filter):
         options = [{'label': i, 'value': i} for i in osparRegions]
     return options
 
+
+########################################################################################################################
+
+#                                     Summary Statistics: Key output callbacks
 
 ########################################################################################################################
 
@@ -793,7 +861,7 @@ def summary_mpa_area(selected_location):
 
 ########################################################################################################################
 
-#                                         Graphs / Data Visualisation Callbacks
+#                                     Main Dashboard: Main Graph callbacks
 
 ########################################################################################################################
 
@@ -1001,9 +1069,9 @@ def make_main_graph(selected_location):
                 layers=[
                     dict(
                         sourcetype='geojson',
-                        source=odimsOspar,
+                        source=osparBoundaries,
                         type='line',
-                        color='#d3d3d3'
+                        color=colors['background1']
                         ),
                     dict(
                         sourcetype='geojson',
@@ -1015,6 +1083,214 @@ def make_main_graph(selected_location):
             ),
         ),
     }
+
+
+########################################################################################################################
+
+#                                     Main Dashboard: OSPAR evaluation callbacks
+
+########################################################################################################################
+
+# Define function which calculates and returns the total count of the targeted OSPAR management question column values
+
+def ospar_selector(selected_location):
+    # Create filters for all UK data
+    if selected_location == 'All UK waters (EEZ+UKCS)':
+        return summaryManagement_df
+    elif selected_location == 'UK inshore (territorial seas)':
+        return summaryManagement_df.loc[summaryManagement_df['Country'].isin([
+            'England inshore', 'Wales inshore', 'Scotland inshore', 'Northern Ireland inshore' ])]
+    elif selected_location == 'UK offshore':
+        return summaryManagement_df.loc[summaryManagement_df['Country'].isin([
+            'England offshore', 'Wales offshore', 'Scotland offshore', 'Northern Ireland offshore'])]
+
+    # Returns for Inshore and Offshore by country data
+    elif selected_location == 'England':
+        return summaryManagement_df.loc[summaryManagement_df['Country'].isin([
+            'England inshore', 'England offshore'])]
+    elif selected_location == 'Wales':
+        return summaryManagement_df.loc[summaryManagement_df['Country'].isin([
+            'Wales inshore', 'Wales offshore'])]
+    elif selected_location == 'Scotland':
+        return summaryManagement_df.loc[summaryManagement_df['Country'].isin([
+            'Scotland inshore', 'Scotland offshore'])]
+    elif selected_location == 'Northern Ireland':
+        return summaryManagement_df.loc[summaryManagement_df['Country'].isin([
+            'Northern Ireland', 'Northern Ireland'])]
+
+
+# Define function to return the total count of each value within each OSPAR management question
+def ospar_counter(df, target, score):
+    if target == 'MANAGEMENT DOCUMENTED':
+        return len(df[target].loc[df[target].isin([score])])
+    elif target == 'MEASURES IMPLEMENTED':
+        return len(df[target].loc[df[target].isin([score])])
+    elif target == 'MONITORING IN PLACE':
+        return len(df[target].loc[df[target].isin([score])])
+    elif target == 'MOVING TOWARDS OBJECTIVES':
+        return len(df[target].loc[df[target].isin([score])])
+
+
+########################################################################################################################
+
+# Create application callback decorator to update documented pie chart with location selection
+@app.callback(
+    dash.dependencies.Output('documented_pie', 'figure'),
+    [dash.dependencies.Input('Location', 'value')]
+)
+def update_doc_pie(selected_location):
+    filtered_df = ospar_selector(selected_location)
+    yes = ospar_counter(filtered_df, 'MANAGEMENT DOCUMENTED', 'Yes')
+    partial = ospar_counter(filtered_df, 'MANAGEMENT DOCUMENTED', 'Partial')
+
+    labels = ['Yes', 'Partially']
+    values = [yes, partial]
+    traces = []
+
+    traces.append(go.Pie(
+        labels=labels,
+        values=values,
+        textposition='outside',
+        textinfo='value',
+        marker=dict(
+            colors=pd.Series(colors['management_cols']),
+            line=dict(color='#ccccc0', width=2)),
+        pull=0.2,
+        hole=0.1
+    ))
+    return {
+        'data': traces,
+        'layout': go.Layout(
+            title='Is MPA Management Documented?',
+            font=dict(color=colors['background1']),
+            hovermode='closest',
+            paper_bgcolor=colors['text'],
+            plot_bgcolor=colors['text']
+        )
+    }
+
+
+########################################################################################################################
+
+# Create application callback decorator to update implemented pie chart with location selection
+@app.callback(
+    dash.dependencies.Output('implemented_pie', 'figure'),
+    [dash.dependencies.Input('Location', 'value')]
+)
+def update_imp_pie(selected_location):
+    filtered_df = ospar_selector(selected_location)
+    yes = ospar_counter(filtered_df, 'MEASURES IMPLEMENTED', 'Yes')
+    partial = ospar_counter(filtered_df, 'MEASURES IMPLEMENTED', 'Partial')
+
+    labels = ['Yes', 'Partially']
+    values = [yes, partial]
+    traces = []
+
+    traces.append(go.Pie(
+        labels=labels,
+        values=values,
+        textposition='outside',
+        textinfo='value',
+        marker=dict(
+            colors=pd.Series(colors['management_cols']),
+            line=dict(color='#ccccc0', width=2)),
+        pull=0.2,
+        hole=0.1
+    ))
+    return {
+        'data': traces,
+        'layout': go.Layout(
+            title='Is MPA Management Implemented?',
+            font=dict(color=colors['background1']),
+            hovermode='closest',
+            paper_bgcolor=colors['text'],
+            plot_bgcolor=colors['text']
+        )
+    }
+
+
+########################################################################################################################
+
+# Create application callback decorator to update implemented pie chart with location selection
+@app.callback(
+    dash.dependencies.Output('monitoring_pie', 'figure'),
+    [dash.dependencies.Input('Location', 'value')]
+)
+def update_mon_pie(selected_location):
+    filtered_df = ospar_selector(selected_location)
+    yes = ospar_counter(filtered_df, 'MONITORING IN PLACE', 'Yes')
+    partial = ospar_counter(filtered_df, 'MONITORING IN PLACE', 'Partial')
+
+    labels = ['Yes', 'Partially']
+    values = [yes, partial]
+    traces = []
+
+    traces.append(go.Pie(
+        labels=labels,
+        values=values,
+        textposition='outside',
+        textinfo='value',
+        marker=dict(
+            colors=pd.Series(colors['management_cols']),
+            line=dict(color='#ccccc0', width=2)),
+        pull=0.2,
+        hole=0.1
+    ))
+    return {
+        'data': traces,
+        'layout': go.Layout(
+            title='Is MPA Monitoring In Place?',
+            font=dict(color=colors['background1']),
+            hovermode='closest',
+            paper_bgcolor=colors['text'],
+            plot_bgcolor=colors['text']
+        )
+    }
+
+
+########################################################################################################################
+
+# Create application callback decorator to update implemented pie chart with location selection
+@app.callback(
+    dash.dependencies.Output('objectives_pie', 'figure'),
+    [dash.dependencies.Input('Location', 'value')]
+)
+def update_obj_pie(selected_location):
+    filtered_df = ospar_selector(selected_location)
+    yes = ospar_counter(filtered_df, 'MOVING TOWARDS OBJECTIVES', 'Yes')
+    partial = ospar_counter(filtered_df, 'MOVING TOWARDS OBJECTIVES', 'Partial')
+
+    labels = ['Yes', 'Partially']
+    values = [yes, partial]
+    traces = []
+
+    traces.append(go.Pie(
+        labels=labels,
+        values=values,
+        textposition='outside',
+        textinfo='value',
+        marker=dict(
+            colors=pd.Series(colors['management_cols']),
+            line=dict(color='#ccccc0', width=2)),
+        pull=0.2,
+        hole=0.1
+    ))
+    return {
+        'data': traces,
+        'layout': go.Layout(
+            title='Moving To Meet Objectives?',
+            font=dict(color=colors['background1']),
+            hovermode='closest',
+            paper_bgcolor=colors['text'],
+            plot_bgcolor=colors['text']
+        )
+    }
+
+########################################################################################################################
+
+#                                            Summary Stats by Designation Callbacks
+
+########################################################################################################################
 
 
 # Create application callback decorator to update bar chart with location selection
