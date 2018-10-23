@@ -28,6 +28,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from textwrap import dedent
 
+
 # Import all libraries required for back end manipulation
 import os
 import pandas as pd
@@ -39,6 +40,7 @@ import plotly.plotly as py
 import plotly.graph_objs as go
 import json
 import urllib.request
+from plotly import tools
 
 ########################################################################################################################
 
@@ -79,11 +81,11 @@ summaryManagement_df = pd.read_excel(
     'SummaryManagement')
 
 # Import UK MPA Network GeoJson data
-with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\UKMPA_wOSPAR.geojson') as f:
+with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\testMPA_SIMP.geojson') as f:
     mpaJson = json.load(f)
 
 # Import OSPAR boundaries GeoJson data
-with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\OSPAR_Boundaries.geojson') as f2:
+with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\testOSPAR_SIMP.geojson') as f2:
     osparBoundaries = json.load(f2)
 
 
@@ -152,8 +154,12 @@ colors = {
     },
 
     'management_cols': {
-        'Yes': '#E0BBE4',
+        'Yes': '#D291BC',
         'Partial': '#957DAD',
+        'No': '#E0BBE4',
+        'Not available': '#FEC8D8',
+        'Unknown': '#FFDFD3',
+
     },
 
     'location_cols': {
@@ -186,7 +192,6 @@ colors = {
 # Set MapBox Access Token for map development
 mapbox_access_token = 'pk.eyJ1IjoibGlhbW1hdGVhciIsImEiOiJjamxnZTRicHQxMzRnM3BxZ2kweWh2Y2drIn0.kAm_AQ9uJJs0N_qb-5HEyg'
 
-
 # Setup app layout
 
 app.layout = html.Div(
@@ -203,29 +208,401 @@ app.layout = html.Div(
                                 'textAlign': 'left',
                                 'color': colors['text'],
                                 'backgroundColor': colors['background1'],
-                                'margin-top': '100',
-                                'font-size': '50',
+                                'margin-top': '45',
+                                'font-size': '55',
                             },
                         ),
-
                         html.Img(
                             src='https://github.com/liammatear/DataSciAcc/raw/master/JNCCLogo_Black.png',
                             className='four columns',
                             style={
                                  'float': 'right',
-                                'margin-top': '20',
+                                'margin-top': '2',
                                  'backgroundColor': colors['background1']
                             },
-                        )
+                        ),
                     ],
+                    className='row'
                 ),
-
+                html.Div(
+                    style={'backgroundColor': colors['text']}, children=[
+                        html.Div(
+                            style={'backgroundColor': colors['text']}, children=[
+                                html.Div(
+                                    style={'backgroundColor': colors['text']}, children=[
+                                        html.Div(
+                                            [
+                                                dcc.Markdown(
+                                                    dedent('''
+                                    Use the checkbox to filter locations at a UK level, by individual country and OSPAR Regions
+                                                                       '''),
+                                                    containerProps={
+                                                        'style': {
+                                                            'textAlign': 'left',
+                                                            'color': colors['background2'],
+                                                            'opacity': 0.9,
+                                                            'font-size': '16',
+                                                            'margin': 10,
+                                                        },
+                                                    },
+                                                ),
+                                                dcc.RadioItems(
+                                                    id='mainSelector',
+                                                    options=[
+                                                        {'label': 'UK', 'value': 'UK'},
+                                                        {'label': 'Country', 'value': 'Country'},
+                                                        {'label': 'OSPAR Region', 'value': 'OSPAR'},
+                                                    ],
+                                                    value='UK',
+                                                    labelStyle={
+                                                        'display': 'inline-block',
+                                                        'color': colors['background2'],
+                                                        'backgroundColor': colors['text'],
+                                                        'font-size': 20,
+                                                        'opacity': 0.9,
+                                                    }
+                                                ),
+                                            ],
+                                        ),
+                                    ],
+                                    className='six columns'
+                                ),
+                                html.Div(
+                                    style={
+                                        'backgroundColor': colors['text'],
+                                    }, children=[
+                                        html.Div(
+                                            [
+                                                dcc.Markdown(
+                                                    dedent('''
+                                    Select a location from the drop-down tab below
+                                                                       '''),
+                                                    containerProps={
+                                                        'style': {
+                                                            'textAlign': 'right',
+                                                            'color': colors['background2'],
+                                                            'opacity': 0.9,
+                                                            'font-size': '16',
+                                                            'margin': 10,
+                                                        },
+                                                    },
+                                                ),
+                                                dcc.Dropdown(
+                                                    id='Location',
+                                                    options=[],
+                                                    # Allows for all or singular filtering
+                                                    multi=False,
+                                                    # value=list(availableLocations)
+                                                    value='All UK waters (EEZ+UKCS)',
+                                                    placeholder="Select a location to begin exploring!",
+                                                ),
+                                            ],
+                                        ),
+                                    ],
+                                    className='six columns'
+                                ),
+                            ],
+                            className='row'
+                        ),
+                        # Create HTML Divisions for key statistical data
+                        html.Div(
+                            style={'backgroundColor': colors['text']}, children=[
+                                html.Div(
+                                    [
+                                        dcc.Graph(id='main_graph')
+                                    ],
+                                    className='ten columns',
+                                    style={'margin-top': '20',
+                                           'float': 'center',
+                                           'backgroundColor': colors['text'],
+                                           },
+                                ),
+                                html.Div(
+                                    [
+                                        html.H1(
+                                            '',
+                                            id='mpa_number',
+                                            style={
+                                                'text-align': 'center',
+                                                'color': colors['background2'],
+                                                'display': 'inline-block',
+                                                'height': 200,
+                                                'margin-top': 20,
+                                                'margin': 20,
+                                                'font-size': 34,
+                                            },
+                                        ),
+                                        html.H1(
+                                            '',
+                                            id='total_area',
+                                            style={
+                                                'text-align': 'center',
+                                                'color': colors['background2'],
+                                                'display': 'inline-block',
+                                                'height': 200,
+                                                'font-size': 34,
+                                                'margin-top': 20,
+                                                'margin': 20,
+                                            }
+                                        ),
+                                        html.H1(
+                                            '',
+                                            id='total_percentage',
+                                            style={
+                                                'text-align': 'center',
+                                                'color': colors['background2'],
+                                                'display': 'inline-block',
+                                                'height': 200,
+                                                'font-size': 34,
+                                                'margin-top': 20,
+                                                'margin': 20,
+                                            },
+                                        ),
+                                    ],
+                                    className='two columns'
+                                ),
+                            ],
+                            className='row'
+                        ),
+                        # Create HTML Divisions for OSPAR management data / graphs and introduction
+                        html.Div(
+                            style={'backgroundColor': colors['text']}, children=[
+                                dcc.Markdown(
+                                    dedent('''
+                                    ## OSPAR MPA Management Evaluation
+                                    UK MPA management have been evaluated under the Oslo and Paris 
+                                    Convention [(OSPAR)](http://www.ospar.org/). Use the tabs below to explore data on 
+                                    a site specific basis, or at UK, individual country and OSPAR regional scales.   
+                                    '''),
+                                    containerProps={
+                                        'style': {
+                                            'float': 'left',
+                                            'color': colors['background1'],
+                                            'margin': '20',
+                                        },
+                                    },
+                                ),
+                            ],
+                            className='row',
+                        ),
+                        html.Div(
+                            style={'backgroundColor': colors['text']}, children=[
+                                html.Div(
+                                    [
+                                        dcc.Tabs(
+                                            id='tab_controls',
+                                            value='tab2_Site',
+                                            children=[
+                                                dcc.Tab(label='Site Specific Data', value='tab2_Site'),
+                                                dcc.Tab(label='OSPAR, UK & Country Data', value='tab1_OSPAR'),
+                                            ],
+                                            colors={
+                                                'border': colors['text'],
+                                                'primary': colors['text'],
+                                                'background': 'rgb(136,136,136)'
+                                            }
+                                        ),
+                                        html.Div(
+                                            id='tab_content'
+                                        ),
+                                    ],
+                                ),
+                            ],
+                            className='row'
+                         ),
+                        # html.Div(
+                        #     style={'backgroundColor': colors['text']}, children=[
+                        #         html.Div(
+                        #             [
+                        #                 dcc.Graph(
+                        #                     id='management_pies'
+                        #                 ),
+                        #             ],
+                        #         ),
+                        #     ],
+                        #     className='row'
+                        # ),
+                        # html.Div(
+                        #     style={'backgroundColor': colors['text']}, children=[
+                        #         html.Div(
+                        #             [
+                        #                 dcc.Markdown(
+                        #                     dedent('''
+                        #                     ## Site Specific Management Data:
+                        #                     Click the protected areas on the map to load site specific MPA performance
+                        #                     descriptions below
+                        #                             '''),
+                        #                     containerProps={
+                        #                         'style': {
+                        #                             'float': 'left',
+                        #                             'color': colors['background1'],
+                        #                             'margin': '20',
+                        #                             'display': 'inline-block'
+                        #                         },
+                        #                     },
+                        #                 ),
+                        #             ],
+                        #         ),
+                        #         html.Div(
+                        #             [
+                        #                 html.P(
+                        #                     'Site selected: No site currently selected',
+                        #                     id='selected_site',
+                        #                     style={
+                        #                         'float': 'right',
+                        #                         'color': colors['background1'],
+                        #                         'margin': '20',
+                        #                         # 'display': 'inline-block',
+                        #                         'margin-top': '100',
+                        #                     },
+                        #                 ),
+                        #             ],
+                        #         ),
+                        #     ],
+                        #     className='row'
+                        # ),
+                        # # Create HTML Divisions for management descriptions
+                        # html.Div(
+                        #     style={'backgroundColor': colors['text']}, children=[
+                        #         html.Div(
+                        #             style={'margin': 16,
+                        #                    'float': 'center'}, children=[
+                        #                 dcc.Markdown(
+                        #                     dedent('''
+                        #             Documentation description
+                        #                                                 '''),
+                        #                     containerProps={
+                        #                         'style': {
+                        #                             'textAlign': 'center',
+                        #                             'color': colors['background1'],
+                        #                         },
+                        #                     }
+                        #                 ),
+                        #                 dcc.Textarea(
+                        #                     id='documented_explanation',
+                        #                     value='Click an MPA on the map to get site information',
+                        #                     style={
+                        #                         'width': '290',
+                        #                         'text-align': 'center',
+                        #                         'color': colors['text'],
+                        #                         'height': '100',
+                        #                         'resize': 'None'
+                        #                     },
+                        #                     draggable=False,
+                        #                     disabled=True,
+                        #                     readOnly=True,
+                        #                     contentEditable=False
+                        #                 ),
+                        #             ],
+                        #             className='three columns'
+                        #         ),
+                        #         html.Div(
+                        #             style={'margin': 16,
+                        #                    'float': 'center'}, children=[
+                        #                 dcc.Markdown(
+                        #                     dedent('''
+                        #             Implementation description
+                        #                                                 '''),
+                        #                     containerProps={
+                        #                         'style': {
+                        #                             'textAlign': 'center',
+                        #                             'color': colors['background1'],
+                        #                         },
+                        #                     }
+                        #                 ),
+                        #                 dcc.Textarea(
+                        #                     id='implemented_explanation',
+                        #                     value='Click an MPA on the map to get site information',
+                        #                     style={
+                        #                         'width': '290',
+                        #                         'text-align': 'center',
+                        #                         'color': colors['text'],
+                        #                         'height': '100',
+                        #                         'resize': 'None'
+                        #                     },
+                        #                     draggable=False,
+                        #                     disabled=True,
+                        #                     readOnly=True,
+                        #                     contentEditable=False
+                        #                 ),
+                        #             ],
+                        #             className='three columns'
+                        #         ),
+                        #         html.Div(
+                        #             style={'margin': 16,
+                        #                    'float': 'center'}, children=[
+                        #                 dcc.Markdown(
+                        #                     dedent('''
+                        #             Monitoring description
+                        #                                                 '''),
+                        #                     containerProps={
+                        #                         'style': {
+                        #                             'textAlign': 'center',
+                        #                             'color': colors['background1'],
+                        #                         },
+                        #                     }
+                        #                 ),
+                        #                 dcc.Textarea(
+                        #                     id='monitoring_explanation',
+                        #                     value='Click an MPA on the map to get site information',
+                        #                     style={
+                        #                         'width': '290',
+                        #                         'text-align': 'center',
+                        #                         'color': colors['text'],
+                        #                         'height': '100',
+                        #                         'resize': 'None'
+                        #                     },
+                        #                     draggable=False,
+                        #                     disabled=True,
+                        #                     readOnly=True,
+                        #                     contentEditable=False
+                        #                 ),
+                        #             ],
+                        #             className='three columns'
+                        #         ),
+                        #         html.Div(
+                        #             style={'margin': 16,
+                        #                    'float': 'center'}, children=[
+                        #                 dcc.Markdown(
+                        #                     dedent('''
+                        #             Movement description
+                        #                                                 '''),
+                        #                     containerProps={
+                        #                         'style': {
+                        #                             'textAlign': 'center',
+                        #                             'color': colors['background1'],
+                        #                         },
+                        #                     }
+                        #                 ),
+                        #                 dcc.Textarea(
+                        #                     id='movement_explanation',
+                        #                     value='Click an MPA on the map to get site information',
+                        #                     style={
+                        #                         'width': '290',
+                        #                         'text-align': 'center',
+                        #                         'color': colors['text'],
+                        #                         'height': '100',
+                        #                         'resize': 'None'
+                        #                     },
+                        #                     draggable=False,
+                        #                     disabled=True,
+                        #                     readOnly=True,
+                        #                     contentEditable=False
+                        #                 ),
+                        #             ],
+                        #             className='three columns'
+                        #         ),
+                        #     ],
+                        #     className='row'
+                        # ),
+                    ]
+                ),
                 html.Div(
                     [
                         html.Div(
                             [
-                                html.H1(
-                                    ' Marine Protected Areas (MPAs)',
+                                html.H2(
+                                    'Marine Protected Areas (MPAs)',
                                     style={
                                         'color': colors['text'],
                                         'text-align': 'left',
@@ -235,11 +612,11 @@ app.layout = html.Div(
                                 ),
                                 dcc.Markdown(
                                     dedent('''
-                                
+
                                 Our seas are home to some of the most biologically diverse [habitats](http://jncc.defra.gov.uk/page-1529) and [species](http://jncc.defra.gov.uk/page-1592) in Europe.
                                 Marine Protected Areas (MPAs) are one of the tools that can help us to protect the marine environment, whilst also enabling it's [sustainable use](http://jncc.defra.gov.uk/page-1528), ensuring it remains healthy and contributes to our society for generations to come.
                                 JNCC is responsible for identifying and providing [conservation advice](http://jncc.defra.gov.uk/page-6849) on MPAs in UK offshore waters (beyond 12 nautical miles). More information on our role can be found on the [MPA Overview page](http://jncc.defra.gov.uk/page-6906).
-                                
+
                                 '''
                                            ),
                                     containerProps={
@@ -258,227 +635,7 @@ app.layout = html.Div(
                     ],
                     className='row'
                 ),
-
-                html.Div(
-                    [
-                        html.Div(
-                            [
-                                dcc.Markdown(
-                                    dedent('''
-                                    # Explore Our Protected Area Network:
-                                                                       '''),
-                                    containerProps={
-                                        'style': {
-                                            'textAlign': 'left',
-                                            'color': colors['text'],
-                                            'margin': '20',
-                                            'margin-top': '35'
-                                        },
-                                    },
-                                ),
-                            ],
-
-                        ),
-                    ],
-                    className='row'
-                ),
-
-                # Set control panel - Location drop-down menu
-                html.Div(
-                    style={'backgroundColor': colors['text']}, children=[
-                        html.Div(
-                            style={'backgroundColor': colors['text']}, children=[
-                                html.Div(
-                                    [
-                                        dcc.Markdown(
-                                            dedent('''
-                                    Use the checkbox to filter locations at a UK level, by individual country and OSPAR Regions
-                                                                       '''),
-                                            containerProps={
-                                                'style': {
-                                                    'textAlign': 'left',
-                                                    'color': colors['background2'],
-                                                    'opacity': 0.9,
-                                                    'font-size': '16',
-                                                    'margin': 10,
-                                                },
-                                            },
-                                        ),
-
-                                        dcc.RadioItems(
-                                            id='mainSelector',
-                                            options=[
-                                                {'label': 'UK', 'value': 'UK'},
-                                                {'label': 'Country', 'value': 'Country'},
-                                                {'label': 'OSPAR Region', 'value': 'OSPAR'},
-                                            ],
-                                            value='UK',
-                                            labelStyle={
-                                                'display': 'inline-block',
-                                                'color': colors['background2'],
-                                                'backgroundColor': colors['text'],
-                                                'font-size': 20,
-                                                'opacity': 0.9,
-                                                }
-                                        ),
-                                    ],
-                                ),
-                            ],
-                            className='six columns'
-                        ),
-                        html.Div(
-                            style={
-                                'backgroundColor': colors['text'],
-                                # 'margin-top': '10',
-                                # 'font-size': 20,
-                            }, children=[
-                                html.Div(
-                                    [
-                                        dcc.Markdown(
-                                            dedent('''
-                                    Select a location from the drop-down tab below
-                                                                       '''),
-                                            containerProps={
-                                                'style': {
-                                                    'textAlign': 'right',
-                                                    'color': colors['background2'],
-                                                    'opacity': 0.9,
-                                                    'font-size': '16',
-                                                    'margin': 10,
-                                                },
-                                            },
-                                        ),
-                                        dcc.Dropdown(
-                                            id='Location',
-                                            options=[],
-                                            # Allows for all or singular filtering
-                                            multi=False,
-                                            # value=list(availableLocations)
-                                            value='All UK waters (EEZ+UKCS)',
-                                            placeholder="Select a location to begin exploring!",
-                                        ),
-                                    ],
-                                ),
-                            ],
-                            className='six columns'
-                        ),
-                    ],
-                    className='row'
-                ),
-
-                html.Div(
-                    style={'backgroundColor': colors['text']}, children=[
-                        html.Div(
-                            [
-                                dcc.Graph(id='main_graph')
-                            ],
-                            className='ten columns',
-                            style={'margin-top': '20',
-                                   'float': 'center',
-                                   'backgroundColor': colors['text'],
-                                   },
-                        ),
-                        html.Div(
-                            [
-                                html.H1(
-                                    '',
-                                    id='mpa_number',
-                                    style={
-                                        'text-align': 'center',
-                                        'color': colors['background2'],
-                                        'display': 'inline-block',
-                                        'height': 200,
-                                        'margin-top': 20,
-                                        'margin': 20,
-                                        'font-size': 38,
-                                        'opacity': 0.9,
-                                    },
-                                ),
-                                html.H1(
-                                    '',
-                                    id='total_area',
-                                    style={
-                                        'text-align': 'center',
-                                        'color': colors['background2'],
-                                        'display': 'inline-block',
-                                        'height': 200,
-                                        'font-size': 38,
-                                        'margin-top': 20,
-                                        'margin': 20,
-                                        'opacity': 0.9,
-                                    }
-                                ),
-                                html.H1(
-                                    '',
-                                    id='total_percentage',
-                                    style={
-                                        'text-align': 'center',
-                                        'color': colors['background2'],
-                                        'display': 'inline-block',
-                                        'height': 200,
-                                        'font-size': 38,
-                                        'opacity': 0.9,
-                                        'margin-top': 20,
-                                        'margin': 20,
-                                    },
-                                ),
-                            ],
-                            className='two columns'
-                        ),
-                    ],
-                    className='row'
-                ),
-
-                html.Div(
-                    style={'backgroundColor': colors['text']}, children=[
-                        html.Div(
-                            [
-                                dcc.Graph(
-                                    id='documented_pie',
-                                ),
-                            ],
-                            className='three columns',
-                        ),
-                        html.Div(
-                            [
-                                dcc.Graph(
-                                    id='implemented_pie',
-                                ),
-                            ],
-                            className='three columns',
-                        ),
-                        html.Div(
-                            [
-                                dcc.Graph(
-                                    id='monitoring_pie',
-                                ),
-                            ],
-                            className='three columns',
-                        ),
-                        html.Div(
-                            [
-                                dcc.Graph(
-                                    id='objectives_pie',
-                                ),
-                            ],
-                            className='three columns',
-                        ),
-                    ],
-                    className='row'
-                ),
-                # html.Div(
-                #     [
-                #         html.Div(
-                #             [
-                #                 dcc.Textarea(
-                #                     id='ospar_explanation'
-                #                 ),
-                #             ],
-                #         ),
-                #     ],
-                #     className='twelve columns'
-                # ),
-
+                # Set descriptions for statistical data overview
                 html.Div(
                     [
                             html.Div(
@@ -522,7 +679,6 @@ app.layout = html.Div(
                     ],
                     className='row'
                 ),
-
                 # Statistics by designation introduction, controls and graphs
                 html.Div(
                     [
@@ -537,7 +693,6 @@ app.layout = html.Div(
                                         'margin': '20',
                                     },
                                 ),
-
                                 dcc.Markdown(
                                     dedent('''
 
@@ -599,7 +754,6 @@ app.layout = html.Div(
                     ],
                     className='row'
                 ),
-
                 # Control panel for designation statistics graphs
                 html.Div(
                     [
@@ -624,18 +778,9 @@ app.layout = html.Div(
                     ],
                     className='row'
                 ),
-
                 # Statistics by designation graphs
                 html.Div(
                     [
-                        # html.Div(
-                        #     [
-                        #         dcc.Graph(id='area_pie')
-                        #     ],
-                        #     className='five columns',
-                        #     style={'margin-top': '10'}
-                        # ),
-                        # Create graph areas - mpa count
                         html.Div(
                             [
                                 dcc.Graph(id='percentage_pie')
@@ -653,7 +798,6 @@ app.layout = html.Div(
                     ],
                     className='row',
                 ),
-
                 # OSPAR Introduction and controls
                 html.Div(
                     [
@@ -790,7 +934,8 @@ def summary_mpa_count(selected_location):
         filtered_df = summaryAll_df[summaryAll_df.Location == selected_location]
         result = filtered_df['Total no. of MPAs']
         for each in result:
-            return 'Total no. of MPAs: ' + str(each)
+            # return str(each) + '\n' + 'MPAs'
+            return 'Total No. of MPAs:  ' + str(each)
 
 
 # Create application callback decorator to update Total Area Number text box in key summary header
@@ -864,6 +1009,8 @@ def summary_mpa_area(selected_location):
 #                                     Main Dashboard: Main Graph callbacks
 
 ########################################################################################################################
+
+# Functions to filter data used within the main map
 
 # Create function to filter latitude based on selected_location
 
@@ -1003,6 +1150,53 @@ def filtered_location(selected_location):
         return [x for x in mpaJson["features"] if x["properties"]["Country"] == selected_location]
 
 
+# Create function to filter opacity for OSPAR boundary data
+def filtered_opacity(selected_location):
+    # Returns for all UK data
+    if selected_location == 'All UK waters (EEZ+UKCS)':
+        return 0.2
+    elif selected_location == 'UK inshore (territorial seas)':
+        return 0.2
+    elif selected_location == 'UK offshore':
+        return 0.2
+
+    # Returns for Inshore and Offshore by country data
+    elif selected_location == 'England':
+        return 0.2
+    elif selected_location == 'Wales':
+        return 0.2
+    elif selected_location == 'Scotland':
+        return 0.2
+    elif selected_location == 'Northern Ireland':
+        return 0.2
+
+    # Returns for OSPAR Selections - THANK YOU TOM
+    elif selected_location == 'Region I: Arctic Waters':
+        return 0.8
+    elif selected_location == 'Region II: Greater North Sea':
+        return 0.8
+    elif selected_location == 'Region III: Celtic Seas':
+        return 0.8
+    elif selected_location == 'Region V: Wider Atlantic':
+        return 0.8
+
+
+# Create function to return correct components of filtered GeoJson properties for hover info
+
+def hover_info(filteredjson):
+    site_name = [filteredjson['features'][k]['properties']['SITE_NAME'] for k in
+                 range(len(filteredjson['features']))]
+    designation = [filteredjson['features'][k]['properties']['SITE_STATU'] for k in
+                   range(len(filteredjson['features']))]
+    hover_list = zip(site_name, designation)
+    string_list = [f'{x} ({y})' for x, y in hover_list]
+    return string_list
+
+########################################################################################################################
+
+
+# Callback operators for main map
+
 # Create application callback decorator for main graph
 @app.callback(
     dash.dependencies.Output('main_graph', 'figure'),
@@ -1023,7 +1217,8 @@ def make_main_graph(selected_location):
         go.Scattermapbox(
             lat=[filteredjson['features'][k]['properties']['LAT_dd'] for k in range(len(filteredjson['features']))],
             lon=[filteredjson['features'][k]['properties']['LONG_dd'] for k in range(len(filteredjson['features']))],
-            text=[filteredjson['features'][k]['properties']['SITE_NAME'] for k in range(len(filteredjson['features']))],
+            text=hover_info(filteredjson),
+            hoverinfo='text',
             marker=dict(
                 color=colors['text'],
                 opacity=0,
@@ -1071,13 +1266,15 @@ def make_main_graph(selected_location):
                         sourcetype='geojson',
                         source=osparBoundaries,
                         type='line',
-                        color=colors['background1']
+                        color=colors['background1'],
+                        opacity=filtered_opacity(selected_location)
                         ),
                     dict(
                         sourcetype='geojson',
                         source=filteredjson,
-                        type='line',
-                        color='#FEC8D8'
+                        type='fill',
+                        color='#b6e1f6',
+                        opacity=0.4
                         ),
                 ],
             ),
@@ -1087,9 +1284,290 @@ def make_main_graph(selected_location):
 
 ########################################################################################################################
 
+#                                     Main Dashboard: Tab callbacks
+
+########################################################################################################################
+
+# Create callback operator to return individual tabs - OSPAR level or site specific data
+
+@app.callback(dash.dependencies.Output('tab_content', 'children'),
+              [dash.dependencies.Input('tab_controls', 'value')]
+              )
+def render_tab_content(tab):
+    if tab == 'tab1_OSPAR':
+        return html.Div(
+            [
+                dcc.Markdown(
+                    dedent('''
+                    ## OSPAR, UK & Country Data 
+                    Use the main filters at the top of the dashboard to filter information shown in the pie         
+                    charts. Toggle which data are visible by clicking their icon in the legend below the graphs
+                                                                    '''),
+                    containerProps={
+                        'style': {
+                            'float': 'center',
+                            'textAlign': 'center',
+                            'color': colors['background1'],
+                        },
+                    },
+                ),
+                dcc.Graph(
+                    id='management_pies'
+                ),
+            ],
+        ),
+    elif tab == 'tab2_Site':
+        return html.Div(
+            style={'backgroundColor': colors['text']}, children=[
+                html.Div(
+                    [
+                        dcc.Markdown(
+                            dedent('''
+                            ## Site Specific Management Data
+                            Load site specific data by clicking on the MPA within the interactive mapper. 
+                            '''),
+                            containerProps={
+                                'style': {
+                                    'float': 'center',
+                                    'textAlign': 'center',
+                                    'color': colors['background1'],
+                                },
+                            },
+                        ),
+                    ],
+                    className='row'
+                ),
+                html.Div(
+                    style={'backgroundColor': colors['text']}, children=[
+                        html.H3('Site selected: Select a site by clicking an MPA boundary',
+                            id='selected_site',
+                            style={
+                                'float': 'left',
+                                'color': colors['background1'],
+                                'margin': '20',
+                                'margin-top': '10',
+                            },
+                        ),
+                    ],
+                    className='row',
+                ),
+                html.Div(
+                    style={'backgroundColor': colors['text']}, children=[
+                        html.Div(
+                            [
+                                html.H5(
+                                    'Is MPA management documented?',
+                                    id='documented_answer',
+                                    style={
+                                        'text-align': 'center',
+                                        'color': colors['background2'],
+                                        'margin': '30',
+                                        'height': '90',
+                                        'width': '240',
+                                    },
+                                ),
+                            ],
+                            className='three columns',
+                        ),
+                        html.Div(
+                            [
+                                html.H5(
+                                    'Are management measures implemented?',
+                                    id='implemented_answer',
+                                    style={
+                                        'text-align': 'center',
+                                        'color': colors['background2'],
+                                        'margin': '30',
+                                        'width': '240',
+                                        'height': '90',
+                                    },
+                                ),
+                            ],
+                            className='three columns'
+                        ),
+                        html.Div(
+                            [
+                                html.H5(
+                                    'Is monitoring in place?',
+                                    id='monitoring_answer',
+                                    style={
+                                        'text-align': 'center',
+                                        'color': colors['background2'],
+                                        'margin': '10',
+                                        'margin-top': '25',
+                                        'width': '240',
+                                        'height': '90',
+                                    },
+                                ),
+                            ],
+                            className='three columns'
+                        ),
+                        html.Div(
+                            [
+                                html.H5(
+                                    'Moving towards conservation objectives?',
+                                    id='movement_answer',
+                                    style={
+                                        'text-align': 'center',
+                                        'color': colors['background2'],
+                                        'margin': '0',
+                                        'margin-top': '20',
+                                        'width': '240',
+                                        'height': '90',
+                                    },
+                                ),
+                            ],
+                            className='three columns'
+                        ),
+                    ],
+                    className='row'
+                ),
+                # Create HTML Divisions for management descriptions
+                html.Div(
+                    style={'backgroundColor': colors['text']}, children=[
+                        html.Div(
+                            style={'margin': 16,
+                                   'float': 'center'}, children=[
+                                dcc.Markdown(
+                                    dedent('''
+                                    Documentation description
+                                    '''),
+                                    containerProps={
+                                        'style': {
+                                            'textAlign': 'center',
+                                            'color': colors['background1'],
+                                        },
+                                    }
+                                ),
+                                dcc.Textarea(
+                                    id='documented_explanation',
+                                    value='Click an MPA on the map to get site information',
+                                    style={
+                                        'width': '290',
+                                        'text-align': 'center',
+                                        'color': colors['text'],
+                                        'height': '100',
+                                        'resize': 'None'
+                                    },
+                                    draggable=False,
+                                    disabled=True,
+                                    readOnly=True,
+                                    contentEditable=False
+                                ),
+                            ],
+                            className='three columns'
+                        ),
+                        html.Div(
+                            style={'margin': 16,
+                                   'float': 'center'}, children=[
+                                dcc.Markdown(
+                                    dedent('''
+                                                    Implementation description
+                                                                                        '''),
+                                    containerProps={
+                                        'style': {
+                                            'textAlign': 'center',
+                                            'color': colors['background1'],
+                                        },
+                                    }
+                                ),
+                                dcc.Textarea(
+                                    id='implemented_explanation',
+                                    value='Click an MPA on the map to get site information',
+                                    style={
+                                        'width': '290',
+                                        'text-align': 'center',
+                                        'color': colors['text'],
+                                        'height': '100',
+                                        'resize': 'None'
+                                    },
+                                    draggable=False,
+                                    disabled=True,
+                                    readOnly=True,
+                                    contentEditable=False
+                                ),
+                            ],
+                            className='three columns'
+                        ),
+                        html.Div(
+                            style={'margin': 16,
+                                   'float': 'center'}, children=[
+                                dcc.Markdown(
+                                    dedent('''
+                                    Monitoring description
+                                    '''),
+                                    containerProps={
+                                        'style': {
+                                            'textAlign': 'center',
+                                            'color': colors['background1'],
+                                        },
+                                    }
+                                ),
+                                dcc.Textarea(
+                                    id='monitoring_explanation',
+                                    value='Click an MPA on the map to get site information',
+                                    style={
+                                        'width': '290',
+                                        'text-align': 'center',
+                                        'color': colors['text'],
+                                        'height': '100',
+                                        'resize': 'None'
+                                    },
+                                    draggable=False,
+                                    disabled=True,
+                                    readOnly=True,
+                                    contentEditable=False
+                                ),
+                            ],
+                            className='three columns'
+                        ),
+                        html.Div(
+                            style={'margin': 16,
+                                   'float': 'center'}, children=[
+                                dcc.Markdown(
+                                    dedent('''
+                                                    Movement description
+                                                                                        '''),
+                                    containerProps={
+                                        'style': {
+                                            'textAlign': 'center',
+                                            'color': colors['background1'],
+                                        },
+                                    }
+                                ),
+                                dcc.Textarea(
+                                    id='movement_explanation',
+                                    value='Click an MPA on the map to get site information',
+                                    style={
+                                        'width': '290',
+                                        'text-align': 'center',
+                                        'color': colors['text'],
+                                        'height': '100',
+                                        'resize': 'None'
+                                    },
+                                    draggable=False,
+                                    disabled=True,
+                                    readOnly=True,
+                                    contentEditable=False
+                                ),
+                            ],
+                            className='three columns'
+                        ),
+                    ],
+                    className='row'
+                ),
+            ],
+        ),
+
+
+########################################################################################################################
+
 #                                     Main Dashboard: OSPAR evaluation callbacks
 
 ########################################################################################################################
+
+# Functions to filter data used within the OSPAR
+
 
 # Define function which calculates and returns the total count of the targeted OSPAR management question column values
 
@@ -1116,7 +1594,7 @@ def ospar_selector(selected_location):
             'Scotland inshore', 'Scotland offshore'])]
     elif selected_location == 'Northern Ireland':
         return summaryManagement_df.loc[summaryManagement_df['Country'].isin([
-            'Northern Ireland', 'Northern Ireland'])]
+            'Northern Ireland inshore', 'Northern Ireland offshore'])]
 
 
 # Define function to return the total count of each value within each OSPAR management question
@@ -1130,161 +1608,293 @@ def ospar_counter(df, target, score):
     elif target == 'MOVING TOWARDS OBJECTIVES':
         return len(df[target].loc[df[target].isin([score])])
 
-
 ########################################################################################################################
 
-# Create application callback decorator to update documented pie chart with location selection
+# Create callback operator to build ospar management pie graphs
+
+# Create application callback decorator to update management pie charts with location selection
 @app.callback(
-    dash.dependencies.Output('documented_pie', 'figure'),
+    dash.dependencies.Output('management_pies', 'figure'),
     [dash.dependencies.Input('Location', 'value')]
 )
-def update_doc_pie(selected_location):
+def update_management_pies(selected_location):
     filtered_df = ospar_selector(selected_location)
-    yes = ospar_counter(filtered_df, 'MANAGEMENT DOCUMENTED', 'Yes')
-    partial = ospar_counter(filtered_df, 'MANAGEMENT DOCUMENTED', 'Partial')
 
-    labels = ['Yes', 'Partially']
-    values = [yes, partial]
-    traces = []
+    # Data filtered for Documented Pie
+    doc_partial = ospar_counter(filtered_df, 'MANAGEMENT DOCUMENTED', 'Partial')
+    doc_yes = ospar_counter(filtered_df, 'MANAGEMENT DOCUMENTED', 'Yes')
 
-    traces.append(go.Pie(
-        labels=labels,
-        values=values,
-        textposition='outside',
-        textinfo='value',
-        marker=dict(
-            colors=pd.Series(colors['management_cols']),
-            line=dict(color='#ccccc0', width=2)),
-        pull=0.2,
-        hole=0.1
-    ))
-    return {
-        'data': traces,
+    # Data filtered for Implemented Pie
+    imp_partial = ospar_counter(filtered_df, 'MEASURES IMPLEMENTED', 'Partial')
+    imp_yes = ospar_counter(filtered_df, 'MEASURES IMPLEMENTED', 'Yes')
+    imp_n_avail = ospar_counter(filtered_df, 'MEASURES IMPLEMENTED', 'Not available')
+
+    # Data filtered for Monitoring Pie
+    mon_no = ospar_counter(filtered_df, 'MONITORING IN PLACE', 'No')
+    mon_n_avail = ospar_counter(filtered_df, 'MEASURES IMPLEMENTED', 'Not available')
+    mon_partial = ospar_counter(filtered_df, 'MONITORING IN PLACE', 'Partial')
+    mon_yes = ospar_counter(filtered_df, 'MONITORING IN PLACE', 'Yes')
+
+    # Data filtered for Objectives Pie
+    obj_no = ospar_counter(filtered_df, 'MOVING TOWARDS OBJECTIVES', 'No')
+    obj_partial = ospar_counter(filtered_df, 'MOVING TOWARDS OBJECTIVES', 'Partial')
+    obj_yes = ospar_counter(filtered_df, 'MOVING TOWARDS OBJECTIVES', 'Yes')
+    obj_unknown = ospar_counter(filtered_df, 'MOVING TOWARDS OBJECTIVES', 'Unknown')
+
+    return {'data': [
+                {
+                    'labels': ['Partially', 'Yes'],
+                    'values': [doc_partial, doc_yes],
+                    'type': 'pie',
+                    'title': 'Is MPA Management Documented?',
+                    'marker': dict(
+                        colors=pd.Series(colors['management_cols']),
+                        line=dict(color='#ccccc0', width=2)
+                    ),
+                    'domain': {'x': [0, 0.25],
+                               'y': [0, 1]},
+                    'hoverinfo': 'label',
+                    'textposition': 'outside',
+                    'textinfo': 'value',
+                    'pull': 0.1,
+                    'hole': 0.1
+                },
+                {
+                    'labels': ['Partially', 'Yes', 'Not available'],
+                    'values': [imp_partial, imp_yes, imp_n_avail],
+                    'type': 'pie',
+                    'title': 'Is MPA Management Implemented?',
+                    'marker': dict(
+                        colors=pd.Series(colors['management_cols']),
+                        line=dict(color='#ccccc0', width=2)
+                    ),
+                    'domain': {'x': [0.25, 0.5],
+                               'y': [0, 1]},
+                    'hoverinfo': 'label',
+                    'textposition': 'outside',
+                    'textinfo': 'value',
+                    'pull': 0.1,
+                    'hole': 0.1
+                },
+                {
+                    'labels': ['No', 'Not available', 'Partially', 'Yes'],
+                    'values': [mon_no, mon_n_avail, mon_partial, mon_yes],
+                    'type': 'pie',
+                    'title': 'Is MPA Monitoring In Place?',
+                    'marker': dict(
+                        colors=pd.Series(colors['management_cols']),
+                        line=dict(color='#ccccc0', width=2)
+                    ),
+                    'domain': {'x': [0.5, 0.75],
+                               'y': [0, 1]},
+                    'hoverinfo': 'label',
+                    'textposition': 'outside',
+                    'textinfo': 'value',
+                    'pull': 0.1,
+                    'hole': 0.1
+                },
+                {
+                    'labels': ['No', 'Partially', 'Yes', 'Unknown'],
+                    'values': [obj_no, obj_partial, obj_yes, obj_unknown],
+                    'type': 'pie',
+                    'title': 'Moving To Meet Objectives?',
+                    'marker': dict(
+                        colors=pd.Series(colors['management_cols']),
+                        line=dict(color='#ccccc0', width=2)
+                    ),
+                    'domain': {'x': [0.75, 1],
+                               'y': [0, 1]},
+                    'hoverinfo': 'label',
+                    'textposition': 'outside',
+                    'textinfo': 'value',
+                    'pull': 0.1,
+                    'hole': 0.1
+                }
+    ],
         'layout': go.Layout(
-            title='Is MPA Management Documented?',
             font=dict(color=colors['background1']),
             hovermode='closest',
             paper_bgcolor=colors['text'],
-            plot_bgcolor=colors['text']
+            plot_bgcolor=colors['text'],
+            autosize=True,
+            legend=dict(orientation="h",
+                        x=0.3,
+                        y=-0.1),
+            annotations=[
+                {
+                    "font": {
+                        "size": 14
+                    },
+                    "showarrow": False,
+                    "text": 'Is Management Documented?',
+                    "x": 0.0,
+                    "y": 1.3
+                },
+                {
+                    "font": {
+                        "size": 14
+                    },
+                    "showarrow": False,
+                    "text": 'Is Management Implemented?',
+                    "x": 0.26,
+                    "y": 1.3
+                },
+                {
+                    "font": {
+                        "size": 14
+                    },
+                    "showarrow": False,
+                    "text": 'Is Monitoring In Place?',
+                    "x": 0.71,
+                    "y": 1.3
+                },
+                {
+                    "font": {
+                        "size": 14
+                    },
+                    "showarrow": False,
+                    "text": 'Moving Towards Objectives?',
+                    "x": 0.99,
+                    "y": 1.3
+                },
+            ],
         )
     }
+
+########################################################################################################################
+
+
+# Define function to return OSPAR documentation answer
+@app.callback(
+    dash.dependencies.Output('documented_answer', 'children'),
+    [dash.dependencies.Input('main_graph', 'clickData')]
+)
+def documented_answer(clickData):
+    selected_site = [clickData['points'][k]['text'] for k in range(len(clickData['points']))]
+    strsite = str(selected_site)
+    for siteName in summaryManagement_df['Site Name']:
+        if siteName in strsite:
+            data = summaryManagement_df.loc[summaryManagement_df['Site Name'].isin([siteName])]
+            return 'Is management documented: ' + data['MANAGEMENT DOCUMENTED']
+
+
+# Define function to return OSPAR implementation answer
+@app.callback(
+    dash.dependencies.Output('implemented_answer', 'children'),
+    [dash.dependencies.Input('main_graph', 'clickData')]
+)
+def documented_answer(clickData):
+    selected_site = [clickData['points'][k]['text'] for k in range(len(clickData['points']))]
+    strsite = str(selected_site)
+    for siteName in summaryManagement_df['Site Name']:
+        if siteName in strsite:
+            data = summaryManagement_df.loc[summaryManagement_df['Site Name'].isin([siteName])]
+            return 'Are measures implemented: ' + data['MEASURES IMPLEMENTED']
+
+
+# Define function to return OSPAR monitoring answer
+@app.callback(
+    dash.dependencies.Output('monitoring_answer', 'children'),
+    [dash.dependencies.Input('main_graph', 'clickData')]
+)
+def documented_answer(clickData):
+    selected_site = [clickData['points'][k]['text'] for k in range(len(clickData['points']))]
+    strsite = str(selected_site)
+    for siteName in summaryManagement_df['Site Name']:
+        if siteName in strsite:
+            data = summaryManagement_df.loc[summaryManagement_df['Site Name'].isin([siteName])]
+            return 'Is monitoring in place: ' + data['MONITORING IN PLACE']
+
+
+# Define function to return OSPAR monitoring answer
+@app.callback(
+    dash.dependencies.Output('movement_answer', 'children'),
+    [dash.dependencies.Input('main_graph', 'clickData')]
+)
+def documented_answer(clickData):
+    selected_site = [clickData['points'][k]['text'] for k in range(len(clickData['points']))]
+    strsite = str(selected_site)
+    for siteName in summaryManagement_df['Site Name']:
+        if siteName in strsite:
+            data = summaryManagement_df.loc[summaryManagement_df['Site Name'].isin([siteName])]
+            return 'Moving towards conservation objectives: ' + data['MOVING TOWARDS OBJECTIVES']
 
 
 ########################################################################################################################
 
-# Create application callback decorator to update implemented pie chart with location selection
+
+# Define function to return string value of the selected site
 @app.callback(
-    dash.dependencies.Output('implemented_pie', 'figure'),
-    [dash.dependencies.Input('Location', 'value')]
+    dash.dependencies.Output('selected_site', 'children'),
+    [dash.dependencies.Input('main_graph', 'clickData')]
 )
-def update_imp_pie(selected_location):
-    filtered_df = ospar_selector(selected_location)
-    yes = ospar_counter(filtered_df, 'MEASURES IMPLEMENTED', 'Yes')
-    partial = ospar_counter(filtered_df, 'MEASURES IMPLEMENTED', 'Partial')
-
-    labels = ['Yes', 'Partially']
-    values = [yes, partial]
-    traces = []
-
-    traces.append(go.Pie(
-        labels=labels,
-        values=values,
-        textposition='outside',
-        textinfo='value',
-        marker=dict(
-            colors=pd.Series(colors['management_cols']),
-            line=dict(color='#ccccc0', width=2)),
-        pull=0.2,
-        hole=0.1
-    ))
-    return {
-        'data': traces,
-        'layout': go.Layout(
-            title='Is MPA Management Implemented?',
-            font=dict(color=colors['background1']),
-            hovermode='closest',
-            paper_bgcolor=colors['text'],
-            plot_bgcolor=colors['text']
-        )
-    }
+def display_selected_site(clickData):
+    site = [clickData['points'][k]['text'] for k in range(len(clickData['points']))]
+    selected_site = ''.join(site)
+    return 'Site selected: ' + str(selected_site)
 
 
-########################################################################################################################
-
-# Create application callback decorator to update implemented pie chart with location selection
+# Define function to return documented management descriptions for each selected site
 @app.callback(
-    dash.dependencies.Output('monitoring_pie', 'figure'),
-    [dash.dependencies.Input('Location', 'value')]
+    dash.dependencies.Output('documented_explanation', 'value'),
+    [dash.dependencies.Input('main_graph', 'clickData')]
 )
-def update_mon_pie(selected_location):
-    filtered_df = ospar_selector(selected_location)
-    yes = ospar_counter(filtered_df, 'MONITORING IN PLACE', 'Yes')
-    partial = ospar_counter(filtered_df, 'MONITORING IN PLACE', 'Partial')
-
-    labels = ['Yes', 'Partially']
-    values = [yes, partial]
-    traces = []
-
-    traces.append(go.Pie(
-        labels=labels,
-        values=values,
-        textposition='outside',
-        textinfo='value',
-        marker=dict(
-            colors=pd.Series(colors['management_cols']),
-            line=dict(color='#ccccc0', width=2)),
-        pull=0.2,
-        hole=0.1
-    ))
-    return {
-        'data': traces,
-        'layout': go.Layout(
-            title='Is MPA Monitoring In Place?',
-            font=dict(color=colors['background1']),
-            hovermode='closest',
-            paper_bgcolor=colors['text'],
-            plot_bgcolor=colors['text']
-        )
-    }
+def display_documented_click_data(clickData):
+    selected_site = [clickData['points'][k]['text'] for k in range(len(clickData['points']))]
+    strsite = str(selected_site)
+    for siteName in summaryManagement_df['Site Name']:
+        if siteName in strsite:
+            data = summaryManagement_df.loc[summaryManagement_df['Site Name'].isin([siteName])]
+            return data['MANAGEMENT DOCUMENTED desc']
 
 
-########################################################################################################################
-
-# Create application callback decorator to update implemented pie chart with location selection
+# Define function to return implementation descriptions for each selected site
 @app.callback(
-    dash.dependencies.Output('objectives_pie', 'figure'),
-    [dash.dependencies.Input('Location', 'value')]
+    dash.dependencies.Output('implemented_explanation', 'value'),
+    [dash.dependencies.Input('main_graph', 'clickData')]
 )
-def update_obj_pie(selected_location):
-    filtered_df = ospar_selector(selected_location)
-    yes = ospar_counter(filtered_df, 'MOVING TOWARDS OBJECTIVES', 'Yes')
-    partial = ospar_counter(filtered_df, 'MOVING TOWARDS OBJECTIVES', 'Partial')
+def display__implemented_click_data(clickData):
+    selected_site = [clickData['points'][k]['text'] for k in range(len(clickData['points']))]
+    strsite = str(selected_site)
+    for siteName in summaryManagement_df['Site Name']:
+        if siteName in strsite:
+            data = summaryManagement_df.loc[summaryManagement_df['Site Name'].isin([siteName])]
+            return data['MEASURES IMPLEMENTED desc']
+        # else:
+        #     return 'Data not available'
 
-    labels = ['Yes', 'Partially']
-    values = [yes, partial]
-    traces = []
 
-    traces.append(go.Pie(
-        labels=labels,
-        values=values,
-        textposition='outside',
-        textinfo='value',
-        marker=dict(
-            colors=pd.Series(colors['management_cols']),
-            line=dict(color='#ccccc0', width=2)),
-        pull=0.2,
-        hole=0.1
-    ))
-    return {
-        'data': traces,
-        'layout': go.Layout(
-            title='Moving To Meet Objectives?',
-            font=dict(color=colors['background1']),
-            hovermode='closest',
-            paper_bgcolor=colors['text'],
-            plot_bgcolor=colors['text']
-        )
-    }
+# Define function to return monitoring descriptions for each selected site
+@app.callback(
+    dash.dependencies.Output('monitoring_explanation', 'value'),
+    [dash.dependencies.Input('main_graph', 'clickData')]
+)
+def display_monitoring_click_data(clickData):
+    selected_site = [clickData['points'][k]['text'] for k in range(len(clickData['points']))]
+    strsite = str(selected_site)
+    for siteName in summaryManagement_df['Site Name']:
+        if siteName in strsite:
+            data = summaryManagement_df.loc[summaryManagement_df['Site Name'].isin([siteName])]
+            return data['MONITORING IN PLACE desc']
+        # else:
+        #     return 'Data not available'
+
+
+# Define function to return monitoring descriptions for each selected site
+@app.callback(
+    dash.dependencies.Output('movement_explanation', 'value'),
+    [dash.dependencies.Input('main_graph', 'clickData')]
+)
+def display_movement_click_data(clickData):
+    selected_site = [clickData['points'][k]['text'] for k in range(len(clickData['points']))]
+    strsite = str(selected_site)
+    for siteName in summaryManagement_df['Site Name']:
+        if siteName in strsite:
+            data = summaryManagement_df.loc[summaryManagement_df['Site Name'].isin([siteName])]
+            return data['MOVING TOWARDS OBJECTIVES desc']
+        # else:
+        #     return 'Data not available'
+
 
 ########################################################################################################################
 
