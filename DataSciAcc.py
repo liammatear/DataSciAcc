@@ -93,7 +93,7 @@ with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\testO
 
 # # Import UK OSPAR regions json data - wfs Geo Server request
 # with urllib.request.urlopen(
-#         'https://odims.ospar.org/geoserver/wfs?srsName=EPSG%3A4326&typename=geonode%3Aospar_inner_boundary_2016_01&outputFormat=json&version=1.0.0&service=WFS&request=GetFeature'
+#         'insert ospar link to geojson data'
 # ) as url:
 #     odimsOspar = json.loads(url.read().decode())
 
@@ -131,6 +131,14 @@ colors = {
     'text': '#262626',  # Very dark grey
     'textbox': 'rgb(248,248,255)',  # White 'rgb(255,255,255,0.5)'
 
+    'filteredjson': '#b6e1f6',
+
+    'question_cols': {
+        'documented_answer': '#957DAD',
+        'implemented_answer': '#D291BC',
+        'monitoring_answer': '#FEC8D8',
+        'movement_answer': '#FFDFD3'
+        },
 
     'mpa_count_cols': {
         'Total no. of MPAs': '#E0BBE4',
@@ -156,7 +164,7 @@ colors = {
     'management_cols': {
         'Yes': '#D291BC',
         'Partial': '#957DAD',
-        'No': '#E0BBE4',
+        'No': '#b6e1f6',
         'Not available': '#FEC8D8',
         'Unknown': '#FFDFD3',
 
@@ -217,13 +225,14 @@ app.layout = html.Div(
                             className='four columns',
                             style={
                                  'float': 'right',
-                                'margin-top': '2',
+                                 'margin-top': '2',
                                  'backgroundColor': colors['background1']
                             },
                         ),
                     ],
                     className='row'
                 ),
+                # Create main dashboard area
                 html.Div(
                     style={'backgroundColor': colors['text']}, children=[
                         html.Div(
@@ -232,9 +241,11 @@ app.layout = html.Div(
                                     style={'backgroundColor': colors['text']}, children=[
                                         html.Div(
                                             [
+                                                # Set Introductory controls text
                                                 dcc.Markdown(
                                                     dedent('''
-                                    Use the checkbox to filter locations at a UK level, by individual country and OSPAR Regions
+                                                    Use the checkbox to filter locations at a UK level, by individual 
+                                                    country and OSPAR Regions
                                                                        '''),
                                                     containerProps={
                                                         'style': {
@@ -246,6 +257,7 @@ app.layout = html.Div(
                                                         },
                                                     },
                                                 ),
+                                                # Create main controls for geospatial regions
                                                 dcc.RadioItems(
                                                     id='mainSelector',
                                                     options=[
@@ -267,15 +279,17 @@ app.layout = html.Div(
                                     ],
                                     className='six columns'
                                 ),
+                                # Set second control - locations within regions (this will be updated with callbacks)
                                 html.Div(
                                     style={
                                         'backgroundColor': colors['text'],
                                     }, children=[
                                         html.Div(
                                             [
+                                                # Set intructions for second drop-down use
                                                 dcc.Markdown(
                                                     dedent('''
-                                    Select a location from the drop-down tab below
+                                                    Select a location from the drop-down tab below
                                                                        '''),
                                                     containerProps={
                                                         'style': {
@@ -287,6 +301,7 @@ app.layout = html.Div(
                                                         },
                                                     },
                                                 ),
+                                                # Create drop-down control
                                                 dcc.Dropdown(
                                                     id='Location',
                                                     options=[],
@@ -309,6 +324,7 @@ app.layout = html.Div(
                             style={'backgroundColor': colors['text']}, children=[
                                 html.Div(
                                     [
+                                        # Create main map / graph
                                         dcc.Graph(id='main_graph')
                                     ],
                                     className='ten columns',
@@ -317,6 +333,7 @@ app.layout = html.Div(
                                            'backgroundColor': colors['text'],
                                            },
                                 ),
+                                # Create accompanying key summary statistics as headers
                                 html.Div(
                                     [
                                         html.H1(
@@ -325,10 +342,9 @@ app.layout = html.Div(
                                             style={
                                                 'text-align': 'center',
                                                 'color': colors['background2'],
-                                                'display': 'inline-block',
                                                 'height': 200,
                                                 'margin-top': 20,
-                                                'margin': 20,
+                                                'margin': 10,
                                                 'font-size': 34,
                                             },
                                         ),
@@ -371,8 +387,8 @@ app.layout = html.Div(
                                     dedent('''
                                     ## OSPAR MPA Management Evaluation
                                     UK MPA management have been evaluated under the Oslo and Paris 
-                                    Convention [(OSPAR)](http://www.ospar.org/). Use the tabs below to explore data on 
-                                    a site specific basis, or at UK, individual country and OSPAR regional scales.   
+                                    Convention [(OSPAR)](http://www.ospar.org/). Data below can be explored 
+                                    at a UK, individual country level, OSPAR regional scale and a site specific basis.   
                                     '''),
                                     containerProps={
                                         'style': {
@@ -385,31 +401,302 @@ app.layout = html.Div(
                             ],
                             className='row',
                         ),
+                        # Create OSPAR management data displays
+                        html.Div(
+                            [
+                                dcc.Markdown(
+                                    dedent('''
+                                    ## OSPAR, UK & Country Data 
+                                    Use the main filters at the top of the dashboard to filter information shown in the 
+                                    pie charts. Toggle which data are visible by clicking their icon in the legend below 
+                                    the graphs
+                                                                                    '''),
+                                    containerProps={
+                                        'style': {
+                                            'float': 'center',
+                                            'textAlign': 'center',
+                                            'color': colors['background1'],
+                                        },
+                                    },
+                                ),
+                                # Create OSPAR management pie charts
+                                dcc.Graph(
+                                    id='management_pies'
+                                ),
+                            ],
+                            className='row'
+                        ),
+                        # Create MPA site specific area displays
                         html.Div(
                             style={'backgroundColor': colors['text']}, children=[
                                 html.Div(
                                     [
-                                        dcc.Tabs(
-                                            id='tab_controls',
-                                            value='tab2_Site',
-                                            children=[
-                                                dcc.Tab(label='Site Specific Data', value='tab2_Site'),
-                                                dcc.Tab(label='OSPAR, UK & Country Data', value='tab1_OSPAR'),
-                                            ],
-                                            colors={
-                                                'border': colors['text'],
-                                                'primary': colors['text'],
-                                                'background': 'rgb(136,136,136)'
-                                            }
-                                        ),
-                                        html.Div(
-                                            id='tab_content'
+                                        dcc.Markdown(
+                                            dedent('''
+                                            ## Site Specific Management Data
+                                            Load site specific data by clicking on the MPA within the interactive 
+                                            mapper. 
+                                            '''),
+                                            containerProps={
+                                                'style': {
+                                                    'float': 'center',
+                                                    'textAlign': 'center',
+                                                    'color': colors['background1'],
+                                                },
+                                            },
                                         ),
                                     ],
+                                    className='row'
+                                ),
+                                # Create interactive information callbacks - data controlled by clickData from map
+                                html.Div(
+                                    style={'backgroundColor': colors['text']}, children=[
+                                        html.H3('Site selected: Select a site by clicking an MPA boundary',
+                                            id='selected_site',
+                                            style={
+                                                'float': 'left',
+                                                'color': colors['background1'],
+                                                'margin': '20',
+                                                'margin-top': '10',
+                                            },
+                                        ),
+                                    ],
+                                    className='row',
+                                ),
+                                html.Div(
+                                    style={'backgroundColor': colors['text']}, children=[
+                                        html.Div(
+                                            [
+                                                html.H5(
+                                                    'Is MPA management documented?',
+                                                    id='documented_answer',
+                                                    style={
+                                                        'text-align': 'center',
+                                                        'color': colors['background2'],
+                                                        'margin': '30',
+                                                        # 'height': '90',
+                                                        'width': '240',
+                                                    },
+                                                ),
+                                            ],
+                                            className='three columns',
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.H5(
+                                                    'Are management measures implemented?',
+                                                    id='implemented_answer',
+                                                    style={
+                                                        'text-align': 'center',
+                                                        'color': colors['background2'],
+                                                        'margin': '30',
+                                                        'width': '240',
+                                                        # 'height': '90',
+                                                    },
+                                                ),
+                                            ],
+                                            className='three columns'
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.H5(
+                                                    'Is monitoring in place?',
+                                                    id='monitoring_answer',
+                                                    style={
+                                                        'text-align': 'center',
+                                                        'color': colors['background2'],
+                                                        'margin': '10',
+                                                        'margin-top': '30',
+                                                        'width': '240',
+                                                        # 'height': '90',
+                                                    },
+                                                ),
+                                            ],
+                                            className='three columns'
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.H5(
+                                                    'Moving towards conservation objectives?',
+                                                    id='movement_answer',
+                                                    style={
+                                                        'text-align': 'center',
+                                                        'color': colors['background2'],
+                                                        'margin': '0',
+                                                        'margin-top': '20',
+                                                        'width': '240',
+                                                        # 'height': '90',
+                                                    },
+                                                ),
+                                            ],
+                                            className='three columns'
+                                        ),
+                                    ],
+                                    className='row'
+                                ),
+                                # Create HTML Divisions for management descriptions
+                                html.Div(
+                                    style={'backgroundColor': colors['text']}, children=[
+                                        html.Div(
+                                            style={'margin': 16,
+                                                   'float': 'center'}, children=[
+                                                dcc.Markdown(
+                                                    dedent('''
+                                                    Documentation description
+                                                    '''),
+                                                    containerProps={
+                                                        'style': {
+                                                            'textAlign': 'center',
+                                                            'color': colors['background1'],
+                                                        },
+                                                    }
+                                                ),
+                                                dcc.Textarea(
+                                                    id='documented_explanation',
+                                                    value='Click an MPA on the map to get site information',
+                                                    style={
+                                                        'width': '290',
+                                                        'text-align': 'center',
+                                                        'color': colors['text'],
+                                                        'height': '100',
+                                                        'resize': 'None'
+                                                    },
+                                                    draggable=False,
+                                                    disabled=True,
+                                                    readOnly=True,
+                                                    contentEditable=False
+                                                ),
+                                            ],
+                                            className='three columns'
+                                        ),
+                                        html.Div(
+                                            style={'margin': 16,
+                                                   'float': 'center'}, children=[
+                                                dcc.Markdown(
+                                                    dedent('''
+                                                                    Implementation description
+                                                                                                        '''),
+                                                    containerProps={
+                                                        'style': {
+                                                            'textAlign': 'center',
+                                                            'color': colors['background1'],
+                                                        },
+                                                    }
+                                                ),
+                                                dcc.Textarea(
+                                                    id='implemented_explanation',
+                                                    value='Click an MPA on the map to get site information',
+                                                    style={
+                                                        'width': '290',
+                                                        'text-align': 'center',
+                                                        'color': colors['text'],
+                                                        'height': '100',
+                                                        'resize': 'None'
+                                                    },
+                                                    draggable=False,
+                                                    disabled=True,
+                                                    readOnly=True,
+                                                    contentEditable=False
+                                                ),
+                                            ],
+                                            className='three columns'
+                                        ),
+                                        html.Div(
+                                            style={'margin': 16,
+                                                   'float': 'center'}, children=[
+                                                dcc.Markdown(
+                                                    dedent('''
+                                                    Monitoring description
+                                                    '''),
+                                                    containerProps={
+                                                        'style': {
+                                                            'textAlign': 'center',
+                                                            'color': colors['background1'],
+                                                        },
+                                                    }
+                                                ),
+                                                dcc.Textarea(
+                                                    id='monitoring_explanation',
+                                                    value='Click an MPA on the map to get site information',
+                                                    style={
+                                                        'width': '290',
+                                                        'text-align': 'center',
+                                                        'color': colors['text'],
+                                                        'height': '100',
+                                                        'resize': 'None'
+                                                    },
+                                                    draggable=False,
+                                                    disabled=True,
+                                                    readOnly=True,
+                                                    contentEditable=False
+                                                ),
+                                            ],
+                                            className='three columns'
+                                        ),
+                                        html.Div(
+                                            style={'margin': 16,
+                                                   'float': 'center'}, children=[
+                                                dcc.Markdown(
+                                                    dedent('''
+                                                                    Movement description
+                                                                                                        '''),
+                                                    containerProps={
+                                                        'style': {
+                                                            'textAlign': 'center',
+                                                            'color': colors['background1'],
+                                                        },
+                                                    }
+                                                ),
+                                                dcc.Textarea(
+                                                    id='movement_explanation',
+                                                    value='Click an MPA on the map to get site information',
+                                                    style={
+                                                        'width': '290',
+                                                        'text-align': 'center',
+                                                        'color': colors['text'],
+                                                        'height': '100',
+                                                        'resize': 'None'
+                                                    },
+                                                    draggable=False,
+                                                    disabled=True,
+                                                    readOnly=True,
+                                                    contentEditable=False
+                                                ),
+                                            ],
+                                            className='three columns'
+                                        ),
+                                    ],
+                                    className='row'
                                 ),
                             ],
-                            className='row'
-                         ),
+                        ),
+                        # Create tabbed versions of management data displays
+
+                        # html.Div(
+                        #     style={'backgroundColor': colors['text']}, children=[
+                        #         html.Div(
+                        #             [
+                        #                 dcc.Tabs(
+                        #                     id='tab_controls',
+                        #                     value='tab2_Site',
+                        #                     children=[
+                        #                         dcc.Tab(label='Site Specific Data', value='tab2_Site'),
+                        #                         dcc.Tab(label='OSPAR, UK & Country Data', value='tab1_OSPAR'),
+                        #                     ],
+                        #                     colors={
+                        #                         'border': colors['text'],
+                        #                         'primary': colors['text'],
+                        #                         'background': 'rgb(136,136,136)'
+                        #                     }
+                        #                 ),
+                        #                 html.Div(
+                        #                     id='tab_content'
+                        #                 ),
+                        #             ],
+                        #         ),
+                        #     ],
+                        #     className='row'
+                        #  ),
                         # html.Div(
                         #     style={'backgroundColor': colors['text']}, children=[
                         #         html.Div(
@@ -597,6 +884,7 @@ app.layout = html.Div(
                         # ),
                     ]
                 ),
+                # Create detailed descriptions of conservation management mechanisms / MPAs
                 html.Div(
                     [
                         html.Div(
@@ -613,9 +901,15 @@ app.layout = html.Div(
                                 dcc.Markdown(
                                     dedent('''
 
-                                Our seas are home to some of the most biologically diverse [habitats](http://jncc.defra.gov.uk/page-1529) and [species](http://jncc.defra.gov.uk/page-1592) in Europe.
-                                Marine Protected Areas (MPAs) are one of the tools that can help us to protect the marine environment, whilst also enabling it's [sustainable use](http://jncc.defra.gov.uk/page-1528), ensuring it remains healthy and contributes to our society for generations to come.
-                                JNCC is responsible for identifying and providing [conservation advice](http://jncc.defra.gov.uk/page-6849) on MPAs in UK offshore waters (beyond 12 nautical miles). More information on our role can be found on the [MPA Overview page](http://jncc.defra.gov.uk/page-6906).
+                                Our seas are home to some of the most biologically diverse 
+                                [habitats](http://jncc.defra.gov.uk/page-1529) and 
+                                [species](http://jncc.defra.gov.uk/page-1592) in Europe. Marine Protected Areas (MPAs) 
+                                are one of the tools that can help us to protect the marine environment, whilst also 
+                                enabling it's [sustainable use](http://jncc.defra.gov.uk/page-1528), ensuring it remains
+                                healthy and contributes to our society for generations to come. JNCC is responsible for 
+                                identifying and providing [conservation advice](http://jncc.defra.gov.uk/page-6849) on
+                                MPAs in UK offshore waters (beyond 12 nautical miles). More information on our role can 
+                                be found on the [MPA Overview page](http://jncc.defra.gov.uk/page-6906).
 
                                 '''
                                            ),
@@ -652,7 +946,8 @@ app.layout = html.Div(
                                     dcc.Markdown(
                                         dedent('''
 
-                                        JNCC calculates statistics for the whole of the UK MPA network to assess progress in MPA designation. 
+                                        JNCC calculates statistics for the whole of the UK MPA network to assess 
+                                        progress in MPA designation. 
                                         
                                         The statistical data represented within this dashboard comprises data from:
                                              
@@ -698,18 +993,19 @@ app.layout = html.Div(
 
                                 In the UK, as of March 2018 approximately 24% of our waters are currently within MPAs.
                                 There are 105 [Special Areas of Conservation (SACs)](http://jncc.defra.gov.uk/page-1445)
-                                with marine components, 107 [Special Protection Areas (SPAs)](http://jncc.defra.gov.uk/page-1414)
-                                with marine components, 56 [Marine Conservation Zones](http://jncc.defra.gov.uk/page-4525)
+                                with marine components, 107 
+                                [Special Protection Areas (SPAs)](http://jncc.defra.gov.uk/page-1414) with marine 
+                                components, 56 [Marine Conservation Zones](http://jncc.defra.gov.uk/page-4525)
                                 and 30 [Nature Conservation Marine Protected Areas](http://jncc.defra.gov.uk/page-5269).
                                 [Sites of Special Scientific Interest (SSSIs)](http://jncc.defra.gov.uk/page-2303)
-                                with marine components and [Ramsar sites](http://jncc.defra.gov.uk/page-161) will also form
-                                part of the UK’s contribution to an MPA network. Currently, the Statutory Nature
-                                Conservation Agencies are confirming those SSSIs and Ramsar sites that will contribute to
-                                the MPA network through their protection of marine features.
+                                with marine components and [Ramsar sites](http://jncc.defra.gov.uk/page-161) will also
+                                form part of the UK’s contribution to an MPA network. Currently, the Statutory Nature
+                                Conservation Agencies are confirming those SSSIs and Ramsar sites that will contribute 
+                                to the MPA network through their protection of marine features.
                                 
-                                The MPA designation types included within this dashboard comprise Marine Conservation Zones
-                                (MCZs), Special Areas of Conservation (SACs) with marine components, Special Protection
-                                Areas (SPAs) with marine components, and Nature Conservation MPAs (NCMPAs).
+                                The MPA designation types included within this dashboard comprise Marine Conservation 
+                                Zones (MCZs), Special Areas of Conservation (SACs) with marine components, Special 
+                                Protection Areas (SPAs) with marine components, and Nature Conservation MPAs (NCMPAs).
                                 
                                 '''
                                            ),
@@ -737,7 +1033,7 @@ app.layout = html.Div(
                                     dedent('''
                                     ## Data by MPA Designation:
 
-                                    ##### Change location using the filter below to toggle the types of MPA displayed in the graphs 
+                                    ##### Change location using the filter below to toggle data displayed in the graphs 
                                                                         '''),
                                     containerProps={
                                         'style': {
@@ -766,8 +1062,6 @@ app.layout = html.Div(
                                             options=[{'label': i, 'value': i} for i in availableLocations],
                                             # Allows for all or singular filtering
                                             multi=False,
-                                            # value=list(availableLocations),
-                                            # Old singular dropdown
                                             value='All UK waters (EEZ+UKCS)',
                                         ),
                                     ],
@@ -828,7 +1122,8 @@ app.layout = html.Div(
                                     which requires contracting parties to establish an ecologically coherent and 
                                     well-managed network of MPAs across the North-east Atlantic as per the [North-east 
                                     Atlantic biodiversity strategy](http://www.ospar.org/site/assets/files/1466/biodiversity_strategy.pdf).
-                                    In 2012, Defra and the Devolved Administrations published a [statement](http://www.scotland.gov.uk/Resource/0041/00411304.pdf) 
+                                    In 2012, Defra and the Devolved Administrations published a 
+                                    [statement](http://www.scotland.gov.uk/Resource/0041/00411304.pdf) 
                                     setting out how the UK will contribute to this target. The UK MPA network is 
                                     intended to contribute toward the protection of [OSPAR threatened and/or declining 
                                     habitats and species](http://www.ospar.org/work-areas/bdc/species-habitats/list-of-threatened-declining-species-habitats),
@@ -934,8 +1229,7 @@ def summary_mpa_count(selected_location):
         filtered_df = summaryAll_df[summaryAll_df.Location == selected_location]
         result = filtered_df['Total no. of MPAs']
         for each in result:
-            # return str(each) + '\n' + 'MPAs'
-            return 'Total No. of MPAs:  ' + str(each)
+            return str(each) + ' Marine Protected Areas'
 
 
 # Create application callback decorator to update Total Area Number text box in key summary header
@@ -968,7 +1262,7 @@ def summary_mpa_area(selected_location):
         filtered_df = summaryAll_df[summaryAll_df.Location == selected_location]
         result = filtered_df['Total Area of MPAs']
         for each in result:
-            return 'Total Area of MPAs (km2):  ' + str(each)
+            return 'Area of MPAs (km2):  ' + str(each)
 
 
 # Create application callback decorator to update Total Percent Covered by MPA text box in key summary header
@@ -1273,7 +1567,7 @@ def make_main_graph(selected_location):
                         sourcetype='geojson',
                         source=filteredjson,
                         type='fill',
-                        color='#b6e1f6',
+                        color=colors['filteredjson'],
                         opacity=0.4
                         ),
                 ],
@@ -1281,283 +1575,284 @@ def make_main_graph(selected_location):
         ),
     }
 
+# Tab callbacks not currently in use
 
 ########################################################################################################################
 
 #                                     Main Dashboard: Tab callbacks
 
 ########################################################################################################################
-
-# Create callback operator to return individual tabs - OSPAR level or site specific data
-
-@app.callback(dash.dependencies.Output('tab_content', 'children'),
-              [dash.dependencies.Input('tab_controls', 'value')]
-              )
-def render_tab_content(tab):
-    if tab == 'tab1_OSPAR':
-        return html.Div(
-            [
-                dcc.Markdown(
-                    dedent('''
-                    ## OSPAR, UK & Country Data 
-                    Use the main filters at the top of the dashboard to filter information shown in the pie         
-                    charts. Toggle which data are visible by clicking their icon in the legend below the graphs
-                                                                    '''),
-                    containerProps={
-                        'style': {
-                            'float': 'center',
-                            'textAlign': 'center',
-                            'color': colors['background1'],
-                        },
-                    },
-                ),
-                dcc.Graph(
-                    id='management_pies'
-                ),
-            ],
-        ),
-    elif tab == 'tab2_Site':
-        return html.Div(
-            style={'backgroundColor': colors['text']}, children=[
-                html.Div(
-                    [
-                        dcc.Markdown(
-                            dedent('''
-                            ## Site Specific Management Data
-                            Load site specific data by clicking on the MPA within the interactive mapper. 
-                            '''),
-                            containerProps={
-                                'style': {
-                                    'float': 'center',
-                                    'textAlign': 'center',
-                                    'color': colors['background1'],
-                                },
-                            },
-                        ),
-                    ],
-                    className='row'
-                ),
-                html.Div(
-                    style={'backgroundColor': colors['text']}, children=[
-                        html.H3('Site selected: Select a site by clicking an MPA boundary',
-                            id='selected_site',
-                            style={
-                                'float': 'left',
-                                'color': colors['background1'],
-                                'margin': '20',
-                                'margin-top': '10',
-                            },
-                        ),
-                    ],
-                    className='row',
-                ),
-                html.Div(
-                    style={'backgroundColor': colors['text']}, children=[
-                        html.Div(
-                            [
-                                html.H5(
-                                    'Is MPA management documented?',
-                                    id='documented_answer',
-                                    style={
-                                        'text-align': 'center',
-                                        'color': colors['background2'],
-                                        'margin': '30',
-                                        'height': '90',
-                                        'width': '240',
-                                    },
-                                ),
-                            ],
-                            className='three columns',
-                        ),
-                        html.Div(
-                            [
-                                html.H5(
-                                    'Are management measures implemented?',
-                                    id='implemented_answer',
-                                    style={
-                                        'text-align': 'center',
-                                        'color': colors['background2'],
-                                        'margin': '30',
-                                        'width': '240',
-                                        'height': '90',
-                                    },
-                                ),
-                            ],
-                            className='three columns'
-                        ),
-                        html.Div(
-                            [
-                                html.H5(
-                                    'Is monitoring in place?',
-                                    id='monitoring_answer',
-                                    style={
-                                        'text-align': 'center',
-                                        'color': colors['background2'],
-                                        'margin': '10',
-                                        'margin-top': '25',
-                                        'width': '240',
-                                        'height': '90',
-                                    },
-                                ),
-                            ],
-                            className='three columns'
-                        ),
-                        html.Div(
-                            [
-                                html.H5(
-                                    'Moving towards conservation objectives?',
-                                    id='movement_answer',
-                                    style={
-                                        'text-align': 'center',
-                                        'color': colors['background2'],
-                                        'margin': '0',
-                                        'margin-top': '20',
-                                        'width': '240',
-                                        'height': '90',
-                                    },
-                                ),
-                            ],
-                            className='three columns'
-                        ),
-                    ],
-                    className='row'
-                ),
-                # Create HTML Divisions for management descriptions
-                html.Div(
-                    style={'backgroundColor': colors['text']}, children=[
-                        html.Div(
-                            style={'margin': 16,
-                                   'float': 'center'}, children=[
-                                dcc.Markdown(
-                                    dedent('''
-                                    Documentation description
-                                    '''),
-                                    containerProps={
-                                        'style': {
-                                            'textAlign': 'center',
-                                            'color': colors['background1'],
-                                        },
-                                    }
-                                ),
-                                dcc.Textarea(
-                                    id='documented_explanation',
-                                    value='Click an MPA on the map to get site information',
-                                    style={
-                                        'width': '290',
-                                        'text-align': 'center',
-                                        'color': colors['text'],
-                                        'height': '100',
-                                        'resize': 'None'
-                                    },
-                                    draggable=False,
-                                    disabled=True,
-                                    readOnly=True,
-                                    contentEditable=False
-                                ),
-                            ],
-                            className='three columns'
-                        ),
-                        html.Div(
-                            style={'margin': 16,
-                                   'float': 'center'}, children=[
-                                dcc.Markdown(
-                                    dedent('''
-                                                    Implementation description
-                                                                                        '''),
-                                    containerProps={
-                                        'style': {
-                                            'textAlign': 'center',
-                                            'color': colors['background1'],
-                                        },
-                                    }
-                                ),
-                                dcc.Textarea(
-                                    id='implemented_explanation',
-                                    value='Click an MPA on the map to get site information',
-                                    style={
-                                        'width': '290',
-                                        'text-align': 'center',
-                                        'color': colors['text'],
-                                        'height': '100',
-                                        'resize': 'None'
-                                    },
-                                    draggable=False,
-                                    disabled=True,
-                                    readOnly=True,
-                                    contentEditable=False
-                                ),
-                            ],
-                            className='three columns'
-                        ),
-                        html.Div(
-                            style={'margin': 16,
-                                   'float': 'center'}, children=[
-                                dcc.Markdown(
-                                    dedent('''
-                                    Monitoring description
-                                    '''),
-                                    containerProps={
-                                        'style': {
-                                            'textAlign': 'center',
-                                            'color': colors['background1'],
-                                        },
-                                    }
-                                ),
-                                dcc.Textarea(
-                                    id='monitoring_explanation',
-                                    value='Click an MPA on the map to get site information',
-                                    style={
-                                        'width': '290',
-                                        'text-align': 'center',
-                                        'color': colors['text'],
-                                        'height': '100',
-                                        'resize': 'None'
-                                    },
-                                    draggable=False,
-                                    disabled=True,
-                                    readOnly=True,
-                                    contentEditable=False
-                                ),
-                            ],
-                            className='three columns'
-                        ),
-                        html.Div(
-                            style={'margin': 16,
-                                   'float': 'center'}, children=[
-                                dcc.Markdown(
-                                    dedent('''
-                                                    Movement description
-                                                                                        '''),
-                                    containerProps={
-                                        'style': {
-                                            'textAlign': 'center',
-                                            'color': colors['background1'],
-                                        },
-                                    }
-                                ),
-                                dcc.Textarea(
-                                    id='movement_explanation',
-                                    value='Click an MPA on the map to get site information',
-                                    style={
-                                        'width': '290',
-                                        'text-align': 'center',
-                                        'color': colors['text'],
-                                        'height': '100',
-                                        'resize': 'None'
-                                    },
-                                    draggable=False,
-                                    disabled=True,
-                                    readOnly=True,
-                                    contentEditable=False
-                                ),
-                            ],
-                            className='three columns'
-                        ),
-                    ],
-                    className='row'
-                ),
-            ],
-        ),
+#
+# # Create callback operator to return individual tabs - OSPAR level or site specific data
+#
+# @app.callback(dash.dependencies.Output('tab_content', 'children'),
+#               [dash.dependencies.Input('tab_controls', 'value')]
+#               )
+# def render_tab_content(tab):
+#     if tab == 'tab1_OSPAR':
+#         return html.Div(
+#             [
+#                 dcc.Markdown(
+#                     dedent('''
+#                     ## OSPAR, UK & Country Data
+#                     Use the main filters at the top of the dashboard to filter information shown in the pie
+#                     charts. Toggle which data are visible by clicking their icon in the legend below the graphs
+#                                                                     '''),
+#                     containerProps={
+#                         'style': {
+#                             'float': 'center',
+#                             'textAlign': 'center',
+#                             'color': colors['background1'],
+#                         },
+#                     },
+#                 ),
+#                 dcc.Graph(
+#                     id='management_pies'
+#                 ),
+#             ],
+#         ),
+#     elif tab == 'tab2_Site':
+#         return html.Div(
+#             style={'backgroundColor': colors['text']}, children=[
+#                 html.Div(
+#                     [
+#                         dcc.Markdown(
+#                             dedent('''
+#                             ## Site Specific Management Data
+#                             Load site specific data by clicking on the MPA within the interactive mapper.
+#                             '''),
+#                             containerProps={
+#                                 'style': {
+#                                     'float': 'center',
+#                                     'textAlign': 'center',
+#                                     'color': colors['background1'],
+#                                 },
+#                             },
+#                         ),
+#                     ],
+#                     className='row'
+#                 ),
+#                 html.Div(
+#                     style={'backgroundColor': colors['text']}, children=[
+#                         html.H3('Site selected: Select a site by clicking an MPA boundary',
+#                             id='selected_site',
+#                             style={
+#                                 'float': 'left',
+#                                 'color': colors['background1'],
+#                                 'margin': '20',
+#                                 'margin-top': '10',
+#                             },
+#                         ),
+#                     ],
+#                     className='row',
+#                 ),
+#                 html.Div(
+#                     style={'backgroundColor': colors['text']}, children=[
+#                         html.Div(
+#                             [
+#                                 html.H5(
+#                                     'Is MPA management documented?',
+#                                     id='documented_answer',
+#                                     style={
+#                                         'text-align': 'center',
+#                                         'color': colors['background2'],
+#                                         'margin': '30',
+#                                         'height': '90',
+#                                         'width': '240',
+#                                     },
+#                                 ),
+#                             ],
+#                             className='three columns',
+#                         ),
+#                         html.Div(
+#                             [
+#                                 html.H5(
+#                                     'Are management measures implemented?',
+#                                     id='implemented_answer',
+#                                     style={
+#                                         'text-align': 'center',
+#                                         'color': colors['background2'],
+#                                         'margin': '30',
+#                                         'width': '240',
+#                                         'height': '90',
+#                                     },
+#                                 ),
+#                             ],
+#                             className='three columns'
+#                         ),
+#                         html.Div(
+#                             [
+#                                 html.H5(
+#                                     'Is monitoring in place?',
+#                                     id='monitoring_answer',
+#                                     style={
+#                                         'text-align': 'center',
+#                                         'color': colors['background2'],
+#                                         'margin': '10',
+#                                         'margin-top': '30',
+#                                         'width': '240',
+#                                         'height': '90',
+#                                     },
+#                                 ),
+#                             ],
+#                             className='three columns'
+#                         ),
+#                         html.Div(
+#                             [
+#                                 html.H5(
+#                                     'Moving towards conservation objectives?',
+#                                     id='movement_answer',
+#                                     style={
+#                                         'text-align': 'center',
+#                                         'color': colors['background2'],
+#                                         'margin': '0',
+#                                         'margin-top': '20',
+#                                         'width': '240',
+#                                         'height': '90',
+#                                     },
+#                                 ),
+#                             ],
+#                             className='three columns'
+#                         ),
+#                     ],
+#                     className='row'
+#                 ),
+#                 # Create HTML Divisions for management descriptions
+#                 html.Div(
+#                     style={'backgroundColor': colors['text']}, children=[
+#                         html.Div(
+#                             style={'margin': 16,
+#                                    'float': 'center'}, children=[
+#                                 dcc.Markdown(
+#                                     dedent('''
+#                                     Documentation description
+#                                     '''),
+#                                     containerProps={
+#                                         'style': {
+#                                             'textAlign': 'center',
+#                                             'color': colors['background1'],
+#                                         },
+#                                     }
+#                                 ),
+#                                 dcc.Textarea(
+#                                     id='documented_explanation',
+#                                     value='Click an MPA on the map to get site information',
+#                                     style={
+#                                         'width': '290',
+#                                         'text-align': 'center',
+#                                         'color': colors['text'],
+#                                         'height': '100',
+#                                         'resize': 'None'
+#                                     },
+#                                     draggable=False,
+#                                     disabled=True,
+#                                     readOnly=True,
+#                                     contentEditable=False
+#                                 ),
+#                             ],
+#                             className='three columns'
+#                         ),
+#                         html.Div(
+#                             style={'margin': 16,
+#                                    'float': 'center'}, children=[
+#                                 dcc.Markdown(
+#                                     dedent('''
+#                                                     Implementation description
+#                                                                                         '''),
+#                                     containerProps={
+#                                         'style': {
+#                                             'textAlign': 'center',
+#                                             'color': colors['background1'],
+#                                         },
+#                                     }
+#                                 ),
+#                                 dcc.Textarea(
+#                                     id='implemented_explanation',
+#                                     value='Click an MPA on the map to get site information',
+#                                     style={
+#                                         'width': '290',
+#                                         'text-align': 'center',
+#                                         'color': colors['text'],
+#                                         'height': '100',
+#                                         'resize': 'None'
+#                                     },
+#                                     draggable=False,
+#                                     disabled=True,
+#                                     readOnly=True,
+#                                     contentEditable=False
+#                                 ),
+#                             ],
+#                             className='three columns'
+#                         ),
+#                         html.Div(
+#                             style={'margin': 16,
+#                                    'float': 'center'}, children=[
+#                                 dcc.Markdown(
+#                                     dedent('''
+#                                     Monitoring description
+#                                     '''),
+#                                     containerProps={
+#                                         'style': {
+#                                             'textAlign': 'center',
+#                                             'color': colors['background1'],
+#                                         },
+#                                     }
+#                                 ),
+#                                 dcc.Textarea(
+#                                     id='monitoring_explanation',
+#                                     value='Click an MPA on the map to get site information',
+#                                     style={
+#                                         'width': '290',
+#                                         'text-align': 'center',
+#                                         'color': colors['text'],
+#                                         'height': '100',
+#                                         'resize': 'None'
+#                                     },
+#                                     draggable=False,
+#                                     disabled=True,
+#                                     readOnly=True,
+#                                     contentEditable=False
+#                                 ),
+#                             ],
+#                             className='three columns'
+#                         ),
+#                         html.Div(
+#                             style={'margin': 16,
+#                                    'float': 'center'}, children=[
+#                                 dcc.Markdown(
+#                                     dedent('''
+#                                                     Movement description
+#                                                                                         '''),
+#                                     containerProps={
+#                                         'style': {
+#                                             'textAlign': 'center',
+#                                             'color': colors['background1'],
+#                                         },
+#                                     }
+#                                 ),
+#                                 dcc.Textarea(
+#                                     id='movement_explanation',
+#                                     value='Click an MPA on the map to get site information',
+#                                     style={
+#                                         'width': '290',
+#                                         'text-align': 'center',
+#                                         'color': colors['text'],
+#                                         'height': '100',
+#                                         'resize': 'None'
+#                                     },
+#                                     draggable=False,
+#                                     disabled=True,
+#                                     readOnly=True,
+#                                     contentEditable=False
+#                                 ),
+#                             ],
+#                             className='three columns'
+#                         ),
+#                     ],
+#                     className='row'
+#                 ),
+#             ],
+#         ),
 
 
 ########################################################################################################################
@@ -1608,6 +1903,7 @@ def ospar_counter(df, target, score):
     elif target == 'MOVING TOWARDS OBJECTIVES':
         return len(df[target].loc[df[target].isin([score])])
 
+
 ########################################################################################################################
 
 # Create callback operator to build ospar management pie graphs
@@ -1648,7 +1944,8 @@ def update_management_pies(selected_location):
                     'type': 'pie',
                     'title': 'Is MPA Management Documented?',
                     'marker': dict(
-                        colors=pd.Series(colors['management_cols']),
+                        # colors=pd.Series(colors['management_cols']),
+                        colors=['#957DAD', '#D291BC'],
                         line=dict(color='#ccccc0', width=2)
                     ),
                     'domain': {'x': [0, 0.25],
@@ -1665,7 +1962,8 @@ def update_management_pies(selected_location):
                     'type': 'pie',
                     'title': 'Is MPA Management Implemented?',
                     'marker': dict(
-                        colors=pd.Series(colors['management_cols']),
+                        # colors=pd.Series(colors['management_cols']),
+                        colors=['#957DAD', '#D291BC', '#FEC8D8'],
                         line=dict(color='#ccccc0', width=2)
                     ),
                     'domain': {'x': [0.25, 0.5],
@@ -1682,7 +1980,8 @@ def update_management_pies(selected_location):
                     'type': 'pie',
                     'title': 'Is MPA Monitoring In Place?',
                     'marker': dict(
-                        colors=pd.Series(colors['management_cols']),
+                        # colors=pd.Series(colors['management_cols']),
+                        colors=['#b6e1f6', '#FEC8D8', '#957DAD', '#D291BC'],
                         line=dict(color='#ccccc0', width=2)
                     ),
                     'domain': {'x': [0.5, 0.75],
@@ -1699,7 +1998,8 @@ def update_management_pies(selected_location):
                     'type': 'pie',
                     'title': 'Moving To Meet Objectives?',
                     'marker': dict(
-                        colors=pd.Series(colors['management_cols']),
+                        # colors=pd.Series(colors['management_cols']),
+                        colors=['#b6e1f6', '#957DAD', '#D291BC', '#FFDFD3'],
                         line=dict(color='#ccccc0', width=2)
                     ),
                     'domain': {'x': [0.75, 1],
