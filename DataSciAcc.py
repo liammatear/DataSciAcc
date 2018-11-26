@@ -103,7 +103,7 @@ with open('C:\\Users\\Liam.Matear\\Desktop\\DataSciAcc\\Planning\\geojson\\testO
 
 # Set unique location headings to build filtering controls for all statistical data
 
-inshoreOffshore = ['All UK waters (EEZ+UKCS)', 'UK inshore (territorial seas)', 'UK offshore']
+inshoreOffshore = ['All UK waters', 'UK inshore (territorial seas)', 'UK offshore']
 
 availableLocations = [
     'England', 'Wales',
@@ -113,7 +113,7 @@ availableLocations = [
 availableLocationsGraphs = [
     'England', 'Wales',
     'Scotland', 'Northern Ireland',
-    'All UK waters (EEZ+UKCS)', 'UK EEZ',
+    'All UK waters', 'UK EEZ',
     'UK inshore (territorial seas)',
     'UK offshore'
     ]
@@ -171,7 +171,7 @@ colors = {
     },
 
     'location_cols': {
-            'All UK waters (EEZ+UKCS)': '#E0BBE4',
+            'All UK waters': '#E0BBE4',
             'UK EEZ': '#E0BBE4',
             'UK inshore (territorial seas)': '#E0BBE4',
             'UK offshore': '#E0BBE4',
@@ -210,14 +210,14 @@ app.layout = html.Div(
                     children=[
                         # Set application title, colour and orientation
                         html.H1(
-                            children='UK Marine Protected Area Network Statistics',
+                            children='The UK Marine Protected Area Network: Statistics & Management Status',
                             className='eight columns',
                             style={
                                 'textAlign': 'left',
                                 'color': colors['text'],
                                 'backgroundColor': colors['background1'],
-                                'margin-top': '45',
-                                'font-size': '55',
+                                'margin-top': '30',
+                                'font-size': '47',
                             },
                         ),
                         html.Img(
@@ -244,8 +244,8 @@ app.layout = html.Div(
                                                 # Set Introductory controls text
                                                 dcc.Markdown(
                                                     dedent('''
-                                                    Use the checkbox to filter locations at a UK level, by individual 
-                                                    country and OSPAR Regions
+                                                    Choose your scale by selecting the whole UK, individual countries or 
+                                                    OSPAR regions in the checkboxes below
                                                                        '''),
                                                     containerProps={
                                                         'style': {
@@ -270,7 +270,7 @@ app.layout = html.Div(
                                                         'display': 'inline-block',
                                                         'color': colors['background2'],
                                                         'backgroundColor': colors['text'],
-                                                        'font-size': 20,
+                                                        'font-size': 24,
                                                         'opacity': 0.9,
                                                     }
                                                 ),
@@ -308,7 +308,7 @@ app.layout = html.Div(
                                                     # Allows for all or singular filtering
                                                     multi=False,
                                                     # value=list(availableLocations)
-                                                    value='All UK waters (EEZ+UKCS)',
+                                                    value='All UK waters',
                                                     placeholder="Select a location to begin exploring!",
                                                 ),
                                             ],
@@ -364,19 +364,6 @@ app.layout = html.Div(
                                         ),
                                         html.H1(
                                             '',
-                                            id='total_area',
-                                            style={
-                                                'text-align': 'center',
-                                                'color': colors['background2'],
-                                                'display': 'inline-block',
-                                                'height': 200,
-                                                'font-size': 34,
-                                                'margin-top': 20,
-                                                'margin': 20,
-                                            }
-                                        ),
-                                        html.H1(
-                                            '',
                                             id='total_percentage',
                                             style={
                                                 'text-align': 'center',
@@ -387,6 +374,19 @@ app.layout = html.Div(
                                                 'margin-top': 20,
                                                 'margin': 20,
                                             },
+                                        ),
+                                        html.H1(
+                                            '',
+                                            id='total_area',
+                                            style={
+                                                'text-align': 'center',
+                                                'color': colors['background2'],
+                                                'display': 'inline-block',
+                                                'height': 200,
+                                                'font-size': 34,
+                                                'margin-top': 20,
+                                                'margin': 20,
+                                            }
                                         ),
                                     ],
                                     className='two columns'
@@ -1075,7 +1075,7 @@ app.layout = html.Div(
                                             options=[{'label': i, 'value': i} for i in availableLocations],
                                             # Allows for all or singular filtering
                                             multi=False,
-                                            value='All UK waters (EEZ+UKCS)',
+                                            value='All UK waters',
                                         ),
                                     ],
                                 ),
@@ -1220,24 +1220,24 @@ def main_control(main_filter):
 def summary_mpa_count(selected_location):
     if selected_location == 'Region I: Arctic Waters':
         filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
-        result = filtered_df['Area of OSPAR region (km2)']
+        result = filtered_df['Total no. of MPAs']
         for each in result:
-            return 'Area of OSPAR Region (km2): ' + str(each)
+            return str(each) + ' Marine Protected Areas'
     elif selected_location == 'Region II: Greater North Sea':
         filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
-        result = filtered_df['Area of OSPAR region (km2)']
+        result = filtered_df['Total no. of MPAs']
         for each in result:
-            return 'Area of OSPAR Region (km2): ' + str(each)
+            return str(each) + ' Marine Protected Areas'
     elif selected_location == 'Region III: Celtic Seas':
         filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
-        result = filtered_df['Area of OSPAR region (km2)']
+        result = filtered_df['Total no. of MPAs']
         for each in result:
-            return 'Area of OSPAR Region (km2): ' + str(each)
+            return str(each) + ' Marine Protected Areas'
     elif selected_location == 'Region V: Wider Atlantic':
         filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
-        result = filtered_df['Area of OSPAR region (km2)']
+        result = filtered_df['Total no. of MPAs']
         for each in result:
-            return 'Area of OSPAR Region (km2): ' + str(each)
+            return str(each) + ' Marine Protected Areas'
     else:
         filtered_df = summaryAll_df[summaryAll_df.Location == selected_location]
         result = filtered_df['Total no. of MPAs']
@@ -1253,29 +1253,29 @@ def summary_mpa_count(selected_location):
 def summary_mpa_area(selected_location):
     if selected_location == 'Region I: Arctic Waters':
         filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
-        result = filtered_df['Area of UK MPAs (km2)']
+        result = filtered_df['Area of OSPAR region (km2)']
         for each in result:
-            return 'Area of UK MPAs (km2): ' + str(each)
+            return 'OSPAR region area: ' + str(each)
     elif selected_location == 'Region II: Greater North Sea':
         filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
-        result = filtered_df['Area of UK MPAs (km2)']
+        result = filtered_df['Area of OSPAR region (km2)']
         for each in result:
-            return 'Area of UK MPAs (km2): ' + str(each)
+            return 'OSPAR region area: ' + str(each)
     elif selected_location == 'Region III: Celtic Seas':
         filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
-        result = filtered_df['Area of UK MPAs (km2)']
+        result = filtered_df['Area of OSPAR region (km2)']
         for each in result:
-            return 'Area of UK MPAs (km2): ' + str(each)
+            return 'OSPAR region area: ' + str(each)
     elif selected_location == 'Region V: Wider Atlantic':
         filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
-        result = filtered_df['Area of UK MPAs (km2)']
+        result = filtered_df['Area of OSPAR region (km2)']
         for each in result:
-            return 'Area of UK MPAs (km2): ' + str(each)
+            return 'OSPAR region area: ' + str(each)
     else:
         filtered_df = summaryAll_df[summaryAll_df.Location == selected_location]
         result = filtered_df['Total Area of MPAs']
         for each in result:
-            return 'Area of MPAs (km2):  ' + str(each)
+            return 'MPA area: ' + str(each)
 
 
 # Create application callback decorator to update Total Percent Covered by MPA text box in key summary header
@@ -1288,27 +1288,27 @@ def summary_mpa_area(selected_location):
         filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
         result = filtered_df['% of OSPAR region']
         for each in result:
-            return '% of OSPAR Region: ' + str(each) + '%'
+            return '% coverage by MPAs: ' + str(each) + '%'
     elif selected_location == 'Region II: Greater North Sea':
         filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
         result = filtered_df['% of OSPAR region']
         for each in result:
-            return '% of OSPAR Region: ' + str(each) + '%'
+            return '% coverage by MPAs: ' + str(each) + '%'
     elif selected_location == 'Region III: Celtic Seas':
         filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
         result = filtered_df['% of OSPAR region']
         for each in result:
-            return '% of OSPAR Region: ' + str(each) + '%'
+            return '% coverage by MPAs: ' + str(each) + '%'
     elif selected_location == 'Region V: Wider Atlantic':
         filtered_df = summaryOSPAR_df[summaryOSPAR_df.Location == selected_location]
         result = filtered_df['% of OSPAR region']
         for each in result:
-            return '% of OSPAR Region: ' + str(each) + '%'
+            return '% coverage by MPAs: ' + str(each) + '%'
     else:
         filtered_df = summaryAll_df[summaryAll_df.Location == selected_location]
         result = filtered_df['Total % of location covered by MPAs']
         for each in result:
-            return 'Total % covered by MPAs:  ' + str(each) + '%'
+            return '% coverage by MPAs:  ' + str(each) + '%'
 
 
 ########################################################################################################################
@@ -1323,7 +1323,7 @@ def summary_mpa_area(selected_location):
 
 def filtered_lat(selected_location):
     # Returns for all UK data
-    if selected_location == 'All UK waters (EEZ+UKCS)':
+    if selected_location == 'All UK waters':
         return 56.6
     elif selected_location == 'UK inshore (territorial seas)':
         return 56.6
@@ -1355,7 +1355,7 @@ def filtered_lat(selected_location):
 
 def filtered_long(selected_location):
     # Returns for all UK data
-    if selected_location == 'All UK waters (EEZ+UKCS)':
+    if selected_location == 'All UK waters':
         return -3.9
     elif selected_location == 'UK inshore (territorial seas)':
         return -3.9
@@ -1387,7 +1387,7 @@ def filtered_long(selected_location):
 
 def filtered_zoom(selected_location):
     # Returns for all UK data
-    if selected_location == 'All UK waters (EEZ+UKCS)':
+    if selected_location == 'All UK waters':
         return 4.0
     elif selected_location == 'UK inshore (territorial seas)':
         return 4.0
@@ -1425,7 +1425,7 @@ def filtered_location(selected_location):
     """
 
     # Returns for all UK data
-    if selected_location == 'All UK waters (EEZ+UKCS)':
+    if selected_location == 'All UK waters':
         return [x for x in mpaJson["features"]]
     elif selected_location == 'UK inshore (territorial seas)':
         return [x for x in mpaJson["features"] if 'inshore' in x["properties"]["Country"]]
@@ -1460,7 +1460,7 @@ def filtered_location(selected_location):
 # Create function to filter opacity for OSPAR boundary data
 def filtered_opacity(selected_location):
     # Returns for all UK data
-    if selected_location == 'All UK waters (EEZ+UKCS)':
+    if selected_location == 'All UK waters':
         return 0.2
     elif selected_location == 'UK inshore (territorial seas)':
         return 0.2
@@ -1496,7 +1496,7 @@ def hover_info(filteredjson):
     designation = [filteredjson['features'][k]['properties']['SITE_STATU'] for k in
                    range(len(filteredjson['features']))]
     hover_list = zip(site_name, designation)
-    string_list = [f'{x} ({y})' for x, y in hover_list]
+    string_list = [f'{x} {y}' for x, y in hover_list]
     return string_list
 
 ########################################################################################################################
@@ -1881,7 +1881,7 @@ def make_main_graph(selected_location):
 
 def ospar_selector(selected_location):
     # Create filters for all UK data
-    if selected_location == 'All UK waters (EEZ+UKCS)':
+    if selected_location == 'All UK waters':
         return summaryManagement_df
     elif selected_location == 'UK inshore (territorial seas)':
         return summaryManagement_df.loc[summaryManagement_df['Country'].isin([
